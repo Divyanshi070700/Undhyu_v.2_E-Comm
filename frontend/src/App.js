@@ -352,6 +352,8 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showCart, setShowCart] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
   const handleSearch = async (query) => {
     if (query.length > 2) {
@@ -367,125 +369,152 @@ const Header = () => {
     }
   };
 
-  return (
-    <header className="bg-white shadow-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0 flex items-center">
-            <h1 className="text-2xl font-bold text-purple-600">Undhyu</h1>
-            <span className="ml-2 text-sm text-gray-500">Women's Fashion</span>
-          </div>
+  const handleCartClick = async () => {
+    if (!user) {
+      alert('Please login to view cart');
+      return;
+    }
+    
+    try {
+      const cart = await api.getCart(localStorage.getItem('token'));
+      setCartItems(cart);
+      setShowCart(true);
+    } catch (error) {
+      console.error('Failed to fetch cart:', error);
+    }
+  };
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-lg mx-8 relative">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search for products..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  handleSearch(e.target.value);
-                }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+  return (
+    <>
+      <header className="bg-white shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <div className="flex-shrink-0 flex items-center">
+              <h1 className="text-2xl font-bold text-purple-600">Undhyu</h1>
+              <span className="ml-2 text-sm text-gray-500">Women's Fashion</span>
             </div>
-            
-            {/* Search Results Dropdown */}
-            {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50">
-                {searchResults.map((product) => (
-                  <div key={product.id} className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                       onClick={() => {
-                         setShowSearchResults(false);
-                         setSearchQuery('');
-                         // Navigate to product page
-                       }}>
-                    <div className="flex items-center space-x-3">
-                      {product.images && product.images[0] && (
-                        <img src={product.images[0]} alt={product.name} className="w-12 h-12 object-cover rounded" />
-                      )}
-                      <div>
-                        <h4 className="font-medium text-gray-900">{product.name}</h4>
-                        <p className="text-sm text-gray-500">₹{product.price}</p>
+
+            {/* Search Bar */}
+            <div className="flex-1 max-w-lg mx-8 relative">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search for products..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    handleSearch(e.target.value);
+                  }}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Search Results Dropdown */}
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50">
+                  {searchResults.map((product) => (
+                    <div key={product.id} className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                         onClick={() => {
+                           setShowSearchResults(false);
+                           setSearchQuery('');
+                           // Navigate to product page
+                         }}>
+                      <div className="flex items-center space-x-3">
+                        {product.images && product.images[0] && (
+                          <img src={product.images[0]} alt={product.name} className="w-12 h-12 object-cover rounded" />
+                        )}
+                        <div>
+                          <h4 className="font-medium text-gray-900">{product.name}</h4>
+                          <p className="text-sm text-gray-500">₹{product.price}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
-            <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Categories</a>
-            <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">New Arrivals</a>
-            <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Sale</a>
-          </nav>
-
-          {/* User actions */}
-          <div className="flex items-center space-x-4">
-            {/* Wishlist */}
-            <button className="p-2 text-gray-600 hover:text-purple-600">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </button>
-
-            {/* Cart */}
-            <button className="p-2 text-gray-600 hover:text-purple-600 relative">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 2.5M7 13l2.5 2.5m6 0L19 12M17 21a2 2 0 100-4 2 2 0 000 4zm-8 0a2 2 0 100-4 2 2 0 000 4z" />
-              </svg>
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
+                  ))}
+                </div>
               )}
-            </button>
+            </div>
 
-            {/* User account */}
-            {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-purple-600"
-                >
-                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">{user.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <span className="hidden md:block">{user.name}</span>
-                </button>
-                
-                {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Orders</a>
-                    {user.is_admin && (
-                      <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Admin Panel</a>
-                    )}
-                    <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button className="bg-purple-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-purple-700">
-                Sign In
+            {/* Navigation */}
+            <nav className="hidden md:flex space-x-8">
+              <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+              <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Categories</a>
+              <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">New Arrivals</a>
+              <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Sale</a>
+            </nav>
+
+            {/* User actions */}
+            <div className="flex items-center space-x-4">
+              {/* Wishlist */}
+              <button className="p-2 text-gray-600 hover:text-purple-600">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
               </button>
-            )}
+
+              {/* Cart */}
+              <button onClick={handleCartClick} className="p-2 text-gray-600 hover:text-purple-600 relative">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 2.5M7 13l2.5 2.5m6 0L19 12M17 21a2 2 0 100-4 2 2 0 000 4zm-8 0a2 2 0 100-4 2 2 0 000 4z" />
+                </svg>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+
+              {/* User account */}
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="flex items-center space-x-2 text-gray-700 hover:text-purple-600"
+                  >
+                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">{user.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <span className="hidden md:block">{user.name}</span>
+                  </button>
+                  
+                  {isMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                      <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                      <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Orders</a>
+                      {user.is_admin && (
+                        <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Admin Panel</a>
+                      )}
+                      <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button className="bg-purple-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-purple-700">
+                  Sign In
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+      
+      {/* Cart Modal */}
+      {showCart && (
+        <PaymentModal 
+          isOpen={showCart} 
+          onClose={() => setShowCart(false)} 
+          cartItems={cartItems}
+          totalAmount={cartItems.reduce((total, item) => total + (item.product?.price || 0) * item.quantity, 0)}
+        />
+      )}
+    </>
   );
 };
 
