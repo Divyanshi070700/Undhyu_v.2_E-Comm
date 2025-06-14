@@ -209,6 +209,66 @@ backend:
       - working: true
         agent: "testing"
         comment: "Successfully tested search functionality. Search returns products matching the query in name, description, or tags."
+        
+  - task: "Payment Order Creation"
+    implemented: true
+    working: false
+    file: "server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "unknown"
+        agent: "main"
+        comment: "Implemented Razorpay payment order creation endpoint"
+      - working: false
+        agent: "testing"
+        comment: "Payment order creation endpoint returns 500 Internal Server Error. The Razorpay client initialization is failing, likely due to issues with the Razorpay credentials or library."
+
+  - task: "Payment Verification"
+    implemented: true
+    working: "NA"
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "unknown"
+        agent: "main"
+        comment: "Implemented Razorpay payment verification endpoint"
+      - working: "NA"
+        agent: "testing"
+        comment: "Could not test payment verification as payment order creation is failing. The endpoint is implemented but cannot be verified."
+
+  - task: "Enhanced Order Creation"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "unknown"
+        agent: "main"
+        comment: "Enhanced order creation to include Razorpay order ID"
+      - working: true
+        agent: "testing"
+        comment: "Order creation works correctly, but the razorpay_order_id field is null. This is expected since the Razorpay client initialization is failing."
+
+  - task: "Payment Webhook"
+    implemented: true
+    working: "NA"
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "unknown"
+        agent: "main"
+        comment: "Implemented Razorpay webhook handler for payment events"
+      - working: "NA"
+        agent: "testing"
+        comment: "Could not fully test payment webhook as payment order creation is failing. The endpoint is implemented but cannot be verified."
 
 frontend:
   - task: "E-commerce Homepage"
