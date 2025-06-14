@@ -1,0 +1,105 @@
+
+================================================================================
+🧪 STARTING UNDHYU E-COMMERCE API TESTS
+================================================================================
+
+🔐 TESTING AUTHENTICATION ENDPOINTS
+
+✅ Admin Login: PASSED
+   Response: {'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiN2FkNTQ4MDctY2NkYy00ZjhkLTlmNzgtNGJmM2YxMWI1YjcwIiwiaXNfYWRtaW4iOnRydWUsImV4cCI6MTc1MDQ5ODI1NX0.MgUEYB1HeedVswayEjn3AcddAy0_ho2rcjj0CCHJUyQ', 'user': {'id': '7ad54807-ccdc-4f8d-9f78-4bf3f11b5b70', 'email': 'admin@undhyu.com', 'name': 'Admin User', 'is_admin': True}}
+--------------------------------------------------------------------------------
+✅ User Registration: PASSED
+   Response: {'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiM2NlN2I0YjktYmYwOC00YzY3LWI2MDAtNzQ3NzY5YjE4OGRiIiwiaXNfYWRtaW4iOmZhbHNlLCJleHAiOjE3NTA0OTgyNTZ9.HXj5Nre5og_dPt2pyzc3ygBGi55SL53M9vIjJXCwMLI', 'user': {'id': '3ce7b4b9-bf08-4c67-b600-747769b188db', 'email': 'test_user_1749893455@example.com', 'name': 'Test User', 'is_admin': False}}
+--------------------------------------------------------------------------------
+✅ User Login: PASSED
+   Response: {'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiM2NlN2I0YjktYmYwOC00YzY3LWI2MDAtNzQ3NzY5YjE4OGRiIiwiaXNfYWRtaW4iOmZhbHNlLCJleHAiOjE3NTA0OTgyNTZ9.HXj5Nre5og_dPt2pyzc3ygBGi55SL53M9vIjJXCwMLI', 'user': {'id': '3ce7b4b9-bf08-4c67-b600-747769b188db', 'email': 'test_user_1749893455@example.com', 'name': 'Test User', 'is_admin': False}}
+--------------------------------------------------------------------------------
+
+📂 TESTING CATEGORY ENDPOINTS
+
+✅ Get Categories: PASSED
+   Response: Retrieved 6 categories
+--------------------------------------------------------------------------------
+✅ Create Category: PASSED
+   Response: {'message': 'Category created successfully', 'category_id': 'ef162e9a-8e8c-464c-934f-5d34cf6d5b61'}
+--------------------------------------------------------------------------------
+
+🛍️ TESTING PRODUCT ENDPOINTS
+
+✅ Get All Products: PASSED
+   Response: Retrieved 0 products
+--------------------------------------------------------------------------------
+✅ Create Product: PASSED
+   Response: {'message': 'Product created successfully', 'product_id': '129d9ff3-13f4-4f5b-9b13-7a5f410eda38'}
+--------------------------------------------------------------------------------
+✅ Get Product by ID: PASSED
+   Response: {'id': '129d9ff3-13f4-4f5b-9b13-7a5f410eda38', 'name': 'Test Product agjoeontpg', 'description': 'Test product description', 'price': 999.99, 'original_price': 1299.99, 'category': 'ef162e9a-8e8c-464c-934f-5d34cf6d5b61', 'subcategory': None, 'sizes': ['S', 'M', 'L'], 'colors': ['Red', 'Blue'], 'images': ['data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='], 'stock': 100, 'is_featured': True, 'is_bestseller': False, 'tags': ['test', 'new'], 'created_at': '2025-06-14T09:30:56.344000', 'updated_at': '2025-06-14T09:30:56.344000'}
+--------------------------------------------------------------------------------
+✅ Update Product: PASSED
+   Response: {'message': 'Product updated successfully'}
+--------------------------------------------------------------------------------
+✅ Get Featured Products: PASSED
+   Response: Retrieved 1 featured products
+--------------------------------------------------------------------------------
+
+🛒 TESTING CART ENDPOINTS
+
+✅ Add to Cart: PASSED
+   Response: {'message': 'Item added to cart'}
+--------------------------------------------------------------------------------
+✅ Get Cart: PASSED
+   Response: Retrieved 1 cart items
+--------------------------------------------------------------------------------
+
+📦 TESTING ORDER ENDPOINTS
+
+✅ Add Item to Cart for Order: PASSED
+   Response: {'message': 'Item added to cart'}
+--------------------------------------------------------------------------------
+✅ Create Order: PASSED
+   Response: {'message': 'Order created successfully', 'order_id': '48fc889b-ea3e-4cd6-aa3f-99fd58c45242', 'total_amount': 2699.9700000000003}
+--------------------------------------------------------------------------------
+✅ Get User Orders: PASSED
+   Response: Retrieved 1 orders
+--------------------------------------------------------------------------------
+✅ Get All Orders (Admin): PASSED
+   Response: Retrieved 1 orders
+--------------------------------------------------------------------------------
+✅ Update Order Status: PASSED
+   Response: {'message': 'Order status updated successfully'}
+--------------------------------------------------------------------------------
+
+🔍 TESTING SEARCH ENDPOINT
+
+✅ Search Products: PASSED
+   Response: Found 1 products matching 'test'
+--------------------------------------------------------------------------------
+
+📊 TESTING ADMIN DASHBOARD
+
+✅ Get Dashboard Stats: PASSED
+   Response: {'total_products': 1, 'total_orders': 1, 'total_users': 3, 'recent_orders': [{'id': '48fc889b-ea3e-4cd6-aa3f-99fd58c45242', 'user_id': '3ce7b4b9-bf08-4c67-b600-747769b188db', 'items': [{'product_id': '129d9ff3-13f4-4f5b-9b13-7a5f410eda38', 'product_name': 'Updated Product ztaxythrub', 'price': 899.99, 'quantity': 2, 'size': 'M', 'color': 'Blue'}, {'product_id': '129d9ff3-13f4-4f5b-9b13-7a5f410eda38', 'product_name': 'Updated Product ztaxythrub', 'price': 899.99, 'quantity': 1, 'size': 'S', 'color': 'Red'}], 'total_amount': 2699.9700000000003, 'shipping_address': {'street': '123 Test Street', 'city': 'Test City', 'state': 'Test State', 'zip': '12345', 'country': 'Test Country'}, 'payment_status': 'pending', 'order_status': 'confirmed', 'payment_method': 'razorpay', 'razorpay_order_id': None, 'shiprocket_order_id': None, 'tracking_number': None, 'created_at': '2025-06-14T09:30:56.441000', 'updated_at': '2025-06-14T09:30:56.486000'}]}
+--------------------------------------------------------------------------------
+
+🧹 TESTING PRODUCT DELETION (CLEANUP)
+
+✅ Delete Product: PASSED
+   Response: {'message': 'Product deleted successfully'}
+--------------------------------------------------------------------------------
+
+================================================================================
+📋 TEST SUMMARY
+================================================================================
+Authentication: ✅ PASSED
+Categories: ✅ PASSED
+Products: ✅ PASSED
+Cart: ✅ PASSED
+Orders: ✅ PASSED
+Search: ✅ PASSED
+Admin Dashboard: ✅ PASSED
+Product Deletion: ✅ PASSED
+
+================================================================================
+🎉 ALL TESTS PASSED SUCCESSFULLY!
+================================================================================
+
