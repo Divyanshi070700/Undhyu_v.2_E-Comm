@@ -279,11 +279,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "User Authentication System"
-    - "Product Management APIs"
-    - "Shopping Cart APIs"
-    - "Order Management System"
     - "E-commerce Homepage"
+    - "User Authentication UI"
+    - "Product Display and Shopping Cart"
+    - "Search Functionality UI"
+    - "Responsive Design"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
