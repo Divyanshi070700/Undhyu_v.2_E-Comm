@@ -6,7 +6,7 @@ import string
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://54a1d159-397c-45f6-b43d-7c17eb879b5c.preview.emergentagent.com/api"
+BASE_URL = "http://localhost:8001/api"
 ADMIN_EMAIL = "admin@undhyu.com"
 ADMIN_PASSWORD = "admin123"
 
