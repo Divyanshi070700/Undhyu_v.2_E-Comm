@@ -126,6 +126,225 @@ const api = {
 };
 
 // Components
+const PaymentModal = ({ isOpen, onClose, cartItems, totalAmount }) => {
+  const { user, token } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState({
+    name: user?.name || '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePayment = async () => {
+    if (!user || !token) {
+      alert('Please login to continue');
+      return;
+    }
+
+    // Validate shipping address
+    if (!shippingAddress.name || !shippingAddress.phone || !shippingAddress.address) {
+      alert('Please fill all required shipping details');
+      return;
+    }
+
+    setIsProcessing(true);
+    
+    try {
+      // Load Razorpay script
+      const isScriptLoaded = await loadRazorpayScript();
+      if (!isScriptLoaded) {
+        throw new Error('Failed to load Razorpay script');
+      }
+
+      // Create payment order
+      const paymentOrder = await api.createPaymentOrder(totalAmount, token);
+      
+      const options = {
+        key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+        amount: paymentOrder.amount,
+        currency: paymentOrder.currency,
+        name: 'Undhyu',
+        description: 'Fashion Purchase',
+        order_id: paymentOrder.order_id,
+        handler: async (response) => {
+          try {
+            // Verify payment
+            await api.verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            }, token);
+            
+            // Create order
+            await api.createOrder({
+              shipping_address: shippingAddress,
+              payment_method: 'razorpay'
+            }, token);
+            
+            alert('Payment successful! Your order has been placed.');
+            onClose();
+            window.location.reload(); // Refresh to update cart
+          } catch (error) {
+            console.error('Payment verification failed:', error);
+            alert('Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          name: shippingAddress.name,
+          email: user.email,
+          contact: shippingAddress.phone
+        },
+        theme: {
+          color: '#9333EA'
+        },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false);
+          }
+        }
+      };
+      
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+      
+    } catch (error) {
+      console.error('Payment initiation failed:', error);
+      alert('Failed to initiate payment. Please try again.');
+      setIsProcessing(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Checkout</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          {/* Order Summary */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3">Order Summary</h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              {cartItems.map((item, index) => (
+                <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                  <div>
+                    <span className="font-medium">{item.product?.name}</span>
+                    <span className="text-sm text-gray-500 ml-2">x{item.quantity}</span>
+                    {item.size && <span className="text-sm text-gray-500 ml-2">Size: {item.size}</span>}
+                  </div>
+                  <span className="font-semibold">₹{(item.product?.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between items-center pt-3 mt-3 border-t border-gray-300">
+                <span className="text-lg font-bold">Total</span>
+                <span className="text-lg font-bold text-purple-600">₹{totalAmount.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Shipping Address */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3">Shipping Address</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Full Name *"
+                value={shippingAddress.name}
+                onChange={(e) => setShippingAddress({...shippingAddress, name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                required
+              />
+              <input
+                type="tel"
+                placeholder="Phone Number *"
+                value={shippingAddress.phone}
+                onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Address *"
+                value={shippingAddress.address}
+                onChange={(e) => setShippingAddress({...shippingAddress, address: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 md:col-span-2"
+                required
+              />
+              <input
+                type="text"
+                placeholder="City"
+                value={shippingAddress.city}
+                onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              />
+              <input
+                type="text"
+                placeholder="State"
+                value={shippingAddress.state}
+                onChange={(e) => setShippingAddress({...shippingAddress, state: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              />
+              <input
+                type="text"
+                placeholder="Pincode"
+                value={shippingAddress.pincode}
+                onChange={(e) => setShippingAddress({...shippingAddress, pincode: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+          </div>
+
+          {/* Payment Button */}
+          <button
+            onClick={handlePayment}
+            disabled={isProcessing}
+            className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          >
+            {isProcessing ? (
+              <>
+                <div className="spinner mr-2"></div>
+                Processing...
+              </>
+            ) : (
+              <>
+                Pay ₹{totalAmount.toFixed(2)} with Razorpay
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K" alt="Razorpay" className="ml-2 w-5 h-5" />
+              </>
+            )}
+          </button>
+          
+          <p className="text-sm text-gray-500 text-center mt-3">
+            Secure payment powered by Razorpay
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Header = () => {
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
