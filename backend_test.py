@@ -236,6 +236,7 @@ def test_cart_endpoints():
         response = requests.post(
             f"{BASE_URL}/cart", 
             json={
+                "user_id": "dummy_user_id",  # This will be overridden by the server
                 "product_id": test_product_id,
                 "quantity": 2,
                 "size": "M",
