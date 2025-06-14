@@ -4,10 +4,12 @@ import time
 import random
 import string
 import uuid
+import hmac
+import hashlib
 from datetime import datetime
 
 # Configuration
-BASE_URL = "http://localhost:8001/api"
+BASE_URL = "https://54a1d159-397c-45f6-b43d-7c17eb879b5c.preview.emergentagent.com/api"
 ADMIN_EMAIL = "admin@undhyu.com"
 ADMIN_PASSWORD = "admin123"
 
@@ -16,11 +18,16 @@ TEST_USER_EMAIL = f"test_user_{int(time.time())}@example.com"
 TEST_USER_PASSWORD = "Test@123"
 TEST_USER_NAME = "Test User"
 
+# Razorpay test credentials
+RAZORPAY_KEY_ID = "rzp_live_QjHRYvOzDT"
+RAZORPAY_KEY_SECRET = "HRYvOzD7NhzihOoWcb474NaK"
+
 # Global variables to store tokens and IDs
 admin_token = None
 user_token = None
 test_product_id = None
 test_category_id = None
+test_razorpay_order_id = None
 
 def generate_random_string(length=10):
     """Generate a random string of fixed length"""
