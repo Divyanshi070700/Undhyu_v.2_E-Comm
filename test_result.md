@@ -339,12 +339,12 @@ metadata:
 
 test_plan:
   current_focus:
-    - "E-commerce Homepage"
-    - "User Authentication UI"
-    - "Product Display and Shopping Cart"
-    - "Search Functionality UI"
-    - "Responsive Design"
-  stuck_tasks: []
+    - "Payment Order Creation"
+    - "Payment Verification"
+    - "Enhanced Order Creation"
+    - "Payment Webhook"
+  stuck_tasks:
+    - "Payment Order Creation"
   test_all: true
   test_priority: "high_first"
 
@@ -353,3 +353,5 @@ agent_communication:
     message: "Initial e-commerce website implementation completed. Created FastAPI backend with all core features including auth, products, cart, orders, and admin functionality. Frontend built with React featuring beautiful UI, product catalog, shopping cart, and user authentication. Ready for backend testing."
   - agent: "testing"
     message: "Completed comprehensive testing of all backend APIs. Created backend_test.py to test all endpoints systematically. All backend features are working correctly including authentication, product management, cart functionality, order management, admin dashboard, category management, and search. No critical issues found."
+  - agent: "testing"
+    message: "Tested Razorpay payment integration features. Found issues with the payment order creation endpoint which returns a 500 Internal Server Error. The Razorpay client initialization appears to be failing. The enhanced order creation works but doesn't include a Razorpay order ID. Payment verification and webhook endpoints are implemented but couldn't be fully tested due to the payment order creation issue."
