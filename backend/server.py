@@ -356,8 +356,19 @@ async def create_order(order: Order, user = Depends(get_current_user)):
     order.items = order_items
     order.total_amount = total_amount
     
-    # TODO: Create Razorpay order here
-    # order.razorpay_order_id = create_razorpay_order(total_amount)
+    # Create Razorpay order
+    if razorpay_client:
+        try:
+            razorpay_order = razorpay_client.order.create({
+                "amount": int(total_amount * 100),  # Convert to paise
+                "currency": "INR",
+                "receipt": f"order_{order.id}",
+                "payment_capture": 1
+            })
+            order.razorpay_order_id = razorpay_order["id"]
+        except Exception as e:
+            print(f"Razorpay order creation failed: {e}")
+            # Continue without Razorpay integration if it fails
     
     order_dict = order.dict()
     orders_collection.insert_one(order_dict)
@@ -365,7 +376,122 @@ async def create_order(order: Order, user = Depends(get_current_user)):
     # Clear cart after order
     cart_collection.delete_many({"user_id": user["id"]})
     
-    return {"message": "Order created successfully", "order_id": order.id, "total_amount": total_amount}
+    return {
+        "message": "Order created successfully", 
+        "order_id": order.id, 
+        "total_amount": total_amount,
+        "razorpay_order_id": order.razorpay_order_id
+    }
+
+# Razorpay payment endpoints
+@app.post("/api/payment/create-order")
+async def create_payment_order(payment_order: PaymentOrder, user = Depends(get_current_user)):
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+    
+    try:
+        razorpay_order = razorpay_client.order.create({
+            "amount": payment_order.amount,
+            "currency": payment_order.currency,
+            "receipt": payment_order.receipt or f"order_{uuid.uuid4()}",
+            "payment_capture": 1
+        })
+        
+        return {
+            "order_id": razorpay_order["id"],
+            "amount": razorpay_order["amount"],
+            "currency": razorpay_order["currency"],
+            "key_id": RAZORPAY_KEY_ID
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create payment order: {str(e)}")
+
+@app.post("/api/payment/verify")
+async def verify_payment(payment_verification: PaymentVerification, user = Depends(get_current_user)):
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+    
+    try:
+        # Verify payment signature
+        razorpay_client.utility.verify_payment_signature({
+            'razorpay_order_id': payment_verification.razorpay_order_id,
+            'razorpay_payment_id': payment_verification.razorpay_payment_id,
+            'razorpay_signature': payment_verification.razorpay_signature
+        })
+        
+        # Update order status
+        result = orders_collection.update_one(
+            {"razorpay_order_id": payment_verification.razorpay_order_id},
+            {"$set": {
+                "payment_status": "paid",
+                "razorpay_payment_id": payment_verification.razorpay_payment_id,
+                "updated_at": datetime.now()
+            }}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        return {"message": "Payment verified successfully", "status": "success"}
+        
+    except razorpay.errors.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid payment signature")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Payment verification failed: {str(e)}")
+
+@app.post("/api/payment/webhook")
+async def handle_payment_webhook(request: Request):
+    try:
+        # Get the raw body
+        body = await request.body()
+        signature = request.headers.get("X-Razorpay-Signature", "")
+        
+        # Verify webhook signature (if webhook secret is configured)
+        # Note: You need to set RAZORPAY_WEBHOOK_SECRET in your environment
+        webhook_secret = os.environ.get('RAZORPAY_WEBHOOK_SECRET')
+        if webhook_secret:
+            razorpay_client.utility.verify_webhook_signature(
+                body.decode(),
+                signature,
+                webhook_secret
+            )
+        
+        # Parse the webhook data
+        event = json.loads(body.decode())
+        
+        # Handle different event types
+        if event["event"] == "payment.captured":
+            payment = event["payload"]["payment"]["entity"]
+            order_id = payment["order_id"]
+            
+            # Update order status
+            orders_collection.update_one(
+                {"razorpay_order_id": order_id},
+                {"$set": {
+                    "payment_status": "paid",
+                    "razorpay_payment_id": payment["id"],
+                    "updated_at": datetime.now()
+                }}
+            )
+            
+        elif event["event"] == "payment.failed":
+            payment = event["payload"]["payment"]["entity"]
+            order_id = payment["order_id"]
+            
+            # Update order status
+            orders_collection.update_one(
+                {"razorpay_order_id": order_id},
+                {"$set": {
+                    "payment_status": "failed",
+                    "updated_at": datetime.now()
+                }}
+            )
+        
+        return {"status": "ok"}
+        
+    except Exception as e:
+        print(f"Webhook processing error: {e}")
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
 
 @app.get("/api/admin/orders")
 async def get_all_orders(admin_user = Depends(get_admin_user)):
