@@ -275,11 +275,35 @@ def test_order_endpoints():
         print_test_result("Order Tests", False, error="Missing user token")
         return False
     
+    # Make sure we have something in the cart first
+    if test_product_id:
+        try:
+            # Add to cart if not already done in cart test
+            response = requests.post(
+                f"{BASE_URL}/cart", 
+                json={
+                    "user_id": "dummy_user_id",  # This will be overridden by the server
+                    "product_id": test_product_id,
+                    "quantity": 1,
+                    "size": "S",
+                    "color": "Red"
+                },
+                headers={"Authorization": f"Bearer {user_token}"}
+            )
+            response.raise_for_status()
+            print_test_result("Add Item to Cart for Order", True, response.json())
+        except Exception as e:
+            print_test_result("Add Item to Cart for Order", False, error=str(e))
+    
     # Test create order
     try:
         response = requests.post(
             f"{BASE_URL}/orders", 
             json={
+                "id": str(uuid.uuid4()),
+                "user_id": "dummy_user_id",  # This will be overridden by the server
+                "items": [],  # This will be populated by the server from the cart
+                "total_amount": 0,  # This will be calculated by the server
                 "shipping_address": {
                     "street": "123 Test Street",
                     "city": "Test City",
@@ -287,6 +311,8 @@ def test_order_endpoints():
                     "zip": "12345",
                     "country": "Test Country"
                 },
+                "payment_status": "pending",
+                "order_status": "placed",
                 "payment_method": "razorpay"
             },
             headers={"Authorization": f"Bearer {user_token}"}
