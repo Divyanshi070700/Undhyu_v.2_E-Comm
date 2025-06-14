@@ -114,6 +114,16 @@ class Category(BaseModel):
     parent_category: Optional[str] = None
     is_active: bool = True
 
+class PaymentOrder(BaseModel):
+    amount: int  # Amount in paise (1 INR = 100 paise)
+    currency: str = "INR"
+    receipt: Optional[str] = None
+
+class PaymentVerification(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
 # Utility functions
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
