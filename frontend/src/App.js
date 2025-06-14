@@ -89,6 +89,31 @@ const api = {
     return response.json();
   },
   
+  // Payment endpoints
+  createPaymentOrder: async (amount, token) => {
+    const response = await fetch(`${API_BASE}/api/payment/create-order`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ amount: amount * 100 }) // Convert to paise
+    });
+    return response.json();
+  },
+  
+  verifyPayment: async (paymentData, token) => {
+    const response = await fetch(`${API_BASE}/api/payment/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(paymentData)
+    });
+    return response.json();
+  },
+  
   getCategories: async () => {
     const response = await fetch(`${API_BASE}/api/categories`);
     return response.json();
