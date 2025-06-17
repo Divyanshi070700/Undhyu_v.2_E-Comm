@@ -323,6 +323,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "After adding python-dotenv to load environment variables from .env file, the endpoint now returns 500 Internal Server Error with message 'Failed to create shipping order'. The Shiprocket API token is being loaded but there might be issues with the API request or response handling."
+      - working: false
+        agent: "testing"
+        comment: "Server logs show the specific error: 'Shiprocket order creation failed: 401 - {\"message\":\"Wrong number of segments\",\"status_code\":401}'. This indicates that the Shiprocket API token is invalid or not being properly formatted for authentication."
 
   - task: "Shipment Tracking"
     implemented: true
