@@ -17,6 +17,10 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Environment variables
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
