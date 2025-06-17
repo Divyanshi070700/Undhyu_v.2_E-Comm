@@ -717,11 +717,12 @@ def test_shipping_create_order():
 
 def test_shipping_tracking():
     """Test Shiprocket shipment tracking"""
+    global test_awb_code
     
     print("\n🔍 TESTING SHIPROCKET SHIPMENT TRACKING\n")
     
     # Test tracking by AWB code (if available)
-    if test_awb_code:
+    if 'test_awb_code' in globals() and test_awb_code:
         try:
             response = requests.get(f"{BASE_URL}/shipping/track/{test_awb_code}")
             
