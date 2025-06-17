@@ -420,19 +420,20 @@ frontend:
 
 metadata:
   created_by: "main_agent"
-  version: "1.0"
-  test_sequence: 1
+  version: "2.0"
+  test_sequence: 2
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Payment Order Creation"
-    - "Shipping Order Creation"
+    - "Razorpay Payment Integration"
+    - "Shiprocket Shipping Integration"
+    - "Payment Integration UI"
   stuck_tasks:
-    - "Payment Order Creation"
-    - "Shipping Order Creation"
+    - "Razorpay Payment Integration"
+    - "Shiprocket Shipping Integration"
   test_all: false
-  test_priority: "high_first"
+  test_priority: "stuck_first"
 
 agent_communication:
   - agent: "main"
