@@ -248,6 +248,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Re-tested payment order creation during Shiprocket integration testing. Still returns 500 Internal Server Error. The Razorpay client initialization is still failing."
+      - working: false
+        agent: "testing"
+        comment: "Server logs show the specific error: 'Razorpay order creation failed: Authentication failed'. This indicates that the Razorpay API credentials are invalid or not being properly formatted."
 
   - task: "Payment Verification"
     implemented: true
