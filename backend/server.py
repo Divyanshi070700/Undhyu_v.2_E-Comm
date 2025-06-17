@@ -196,6 +196,106 @@ def get_admin_user(user = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
+# Shiprocket utility functions
+def create_shiprocket_order(order_data: dict, shipping_address: dict, order_items: list, total_amount: float):
+    """Create an order in Shiprocket"""
+    if not SHIPROCKET_API_TOKEN:
+        return None
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {SHIPROCKET_API_TOKEN}"
+    }
+    
+    # Prepare order items for Shiprocket
+    shiprocket_items = []
+    for item in order_items:
+        shiprocket_items.append({
+            "name": item["product_name"],
+            "sku": item["product_id"],
+            "units": item["quantity"],
+            "selling_price": item["price"]
+        })
+    
+    # Prepare Shiprocket order payload
+    shiprocket_payload = {
+        "order_id": order_data["id"],
+        "order_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "pickup_location": "Primary",
+        "channel_id": SHIPROCKET_CHANNEL_ID,
+        "comment": "Order from Undhyu Fashion",
+        "billing_customer_name": shipping_address.get("name", "Customer"),
+        "billing_last_name": "",
+        "billing_address": shipping_address.get("address", ""),
+        "billing_city": shipping_address.get("city", ""),
+        "billing_pincode": shipping_address.get("pincode", ""),
+        "billing_state": shipping_address.get("state", ""),
+        "billing_country": "India",
+        "billing_email": shipping_address.get("email", "customer@undhyu.com"),
+        "billing_phone": shipping_address.get("phone", ""),
+        "shipping_is_billing": True,
+        "order_items": shiprocket_items,
+        "payment_method": "Prepaid",
+        "shipping_charges": 0,
+        "giftwrap_charges": 0,
+        "transaction_charges": 0,
+        "total_discount": 0,
+        "sub_total": total_amount,
+        "length": 15,
+        "breadth": 10,
+        "height": 5,
+        "weight": 0.5
+    }
+    
+    try:
+        response = requests.post(
+            f"{SHIPROCKET_BASE_URL}/orders/create/adhoc",
+            json=shiprocket_payload,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return {
+                "order_id": result.get("order_id"),
+                "shipment_id": result.get("shipment_id"),
+                "status": "success"
+            }
+        else:
+            print(f"Shiprocket order creation failed: {response.status_code} - {response.text}")
+            return {"status": "failed", "error": response.text}
+            
+    except Exception as e:
+        print(f"Shiprocket API error: {e}")
+        return {"status": "error", "error": str(e)}
+
+def get_shiprocket_tracking(awb_code: str):
+    """Get tracking information from Shiprocket"""
+    if not SHIPROCKET_API_TOKEN or not awb_code:
+        return None
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {SHIPROCKET_API_TOKEN}"
+    }
+    
+    try:
+        response = requests.get(
+            f"{SHIPROCKET_BASE_URL}/courier/track/awb/{awb_code}",
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+            
+    except Exception as e:
+        print(f"Shiprocket tracking error: {e}")
+        return None
+
 # Initialize default categories and products
 @app.on_event("startup")
 async def startup_event():
