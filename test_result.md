@@ -412,18 +412,17 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 0
+  test_sequence: 1
   run_ui: false
 
 test_plan:
   current_focus:
     - "Payment Order Creation"
-    - "Payment Verification"
-    - "Enhanced Order Creation"
-    - "Payment Webhook"
+    - "Shipping Order Creation"
   stuck_tasks:
     - "Payment Order Creation"
-  test_all: true
+    - "Shipping Order Creation"
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
@@ -433,3 +432,5 @@ agent_communication:
     message: "Completed comprehensive testing of all backend APIs. Created backend_test.py to test all endpoints systematically. All backend features are working correctly including authentication, product management, cart functionality, order management, admin dashboard, category management, and search. No critical issues found."
   - agent: "testing"
     message: "Tested Razorpay payment integration features. Found issues with the payment order creation endpoint which returns a 500 Internal Server Error. The Razorpay client initialization appears to be failing. The enhanced order creation works but doesn't include a Razorpay order ID. Payment verification and webhook endpoints are implemented but couldn't be fully tested due to the payment order creation issue."
+  - agent: "testing"
+    message: "Completed testing of Shiprocket shipping integration. Enhanced backend_test.py to test all new shipping endpoints. Found that the shipping order creation endpoint returns a 500 error with 'Shiprocket not configured' message. Order tracking and admin shipping management endpoints work correctly. The enhanced order creation now includes shiprocket_order_id field in the response, but it's null due to configuration issues."
