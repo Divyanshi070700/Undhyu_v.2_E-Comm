@@ -642,6 +642,116 @@ async def handle_payment_webhook(request: Request):
         print(f"Webhook processing error: {e}")
         raise HTTPException(status_code=500, detail="Webhook processing failed")
 
+# Shiprocket shipping endpoints
+@app.get("/api/shipping/track/{awb_code}")
+async def track_shipment(awb_code: str):
+    """Track shipment using AWB code"""
+    tracking_data = get_shiprocket_tracking(awb_code)
+    
+    if tracking_data:
+        return tracking_data
+    else:
+        raise HTTPException(status_code=404, detail="Tracking information not found")
+
+@app.post("/api/shipping/create-order")
+async def create_shipping_order(order_data: dict, user = Depends(get_current_user)):
+    """Create a shipping order in Shiprocket"""
+    if not SHIPROCKET_API_TOKEN:
+        raise HTTPException(status_code=500, detail="Shiprocket not configured")
+    
+    # Get order details from database
+    order = orders_collection.find_one({"id": order_data.get("order_id"), "user_id": user["id"]})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Create Shiprocket order
+    shiprocket_result = create_shiprocket_order(
+        order,
+        order.get("shipping_address", {}),
+        order.get("items", []),
+        order.get("total_amount", 0)
+    )
+    
+    if shiprocket_result and shiprocket_result.get("status") == "success":
+        # Update order with Shiprocket details
+        orders_collection.update_one(
+            {"id": order_data.get("order_id")},
+            {"$set": {
+                "shiprocket_order_id": shiprocket_result.get("order_id"),
+                "shipment_id": shiprocket_result.get("shipment_id"),
+                "order_status": "confirmed",
+                "updated_at": datetime.now()
+            }}
+        )
+        
+        return {
+            "message": "Shipping order created successfully",
+            "shiprocket_order_id": shiprocket_result.get("order_id"),
+            "shipment_id": shiprocket_result.get("shipment_id")
+        }
+    else:
+        raise HTTPException(status_code=500, detail="Failed to create shipping order")
+
+@app.get("/api/admin/shipping/orders")
+async def get_shipping_orders(admin_user = Depends(get_admin_user)):
+    """Get all orders with shipping information"""
+    orders = list(orders_collection.find({"shiprocket_order_id": {"$exists": True}}))
+    
+    for order in orders:
+        order.pop("_id", None)
+        # Add tracking information if AWB exists
+        if order.get("tracking_number"):
+            tracking_data = get_shiprocket_tracking(order["tracking_number"])
+            if tracking_data:
+                order["tracking_status"] = tracking_data.get("tracking_data", {}).get("shipment_status")
+    
+    return orders
+
+@app.put("/api/admin/shipping/orders/{order_id}/ship")
+async def ship_order(order_id: str, admin_user = Depends(get_admin_user)):
+    """Mark order as shipped and update tracking"""
+    order = orders_collection.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Update order status
+    result = orders_collection.update_one(
+        {"id": order_id},
+        {"$set": {
+            "order_status": "shipped",
+            "updated_at": datetime.now()
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    return {"message": "Order marked as shipped"}
+
+@app.get("/api/orders/{order_id}/track")
+async def get_order_tracking(order_id: str, user = Depends(get_current_user)):
+    """Get tracking information for a specific order"""
+    order = orders_collection.find_one({"id": order_id, "user_id": user["id"]})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    tracking_info = {
+        "order_id": order_id,
+        "order_status": order.get("order_status", "placed"),
+        "payment_status": order.get("payment_status", "pending"),
+        "shiprocket_order_id": order.get("shiprocket_order_id"),
+        "tracking_number": order.get("tracking_number"),
+        "tracking_url": f"https://shiprocket.in/tracking/{order.get('tracking_number')}" if order.get("tracking_number") else None
+    }
+    
+    # Get detailed tracking if AWB exists
+    if order.get("tracking_number"):
+        tracking_data = get_shiprocket_tracking(order["tracking_number"])
+        if tracking_data:
+            tracking_info["tracking_details"] = tracking_data.get("tracking_data", {})
+    
+    return tracking_info
+
 @app.get("/api/admin/orders")
 async def get_all_orders(admin_user = Depends(get_admin_user)):
     orders = list(orders_collection.find({}))
