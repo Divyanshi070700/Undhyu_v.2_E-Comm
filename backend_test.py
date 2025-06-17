@@ -28,6 +28,9 @@ user_token = None
 test_product_id = None
 test_category_id = None
 test_razorpay_order_id = None
+test_order_id = None
+test_shiprocket_order_id = None
+test_awb_code = None
 
 def generate_random_string(length=10):
     """Generate a random string of fixed length"""
