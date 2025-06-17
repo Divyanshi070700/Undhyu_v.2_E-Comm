@@ -679,6 +679,146 @@ def test_payment_webhook():
     
     return True
 
+def test_shipping_create_order():
+    """Test Shiprocket shipping order creation"""
+    global test_awb_code
+    
+    print("\n📦 TESTING SHIPROCKET SHIPPING ORDER CREATION\n")
+    
+    if not user_token or not test_order_id:
+        print_test_result("Shipping Order Creation", False, error="Missing user token or order ID")
+        return False
+    
+    # Test create shipping order
+    try:
+        response = requests.post(
+            f"{BASE_URL}/shipping/create-order",
+            json={"order_id": test_order_id},
+            headers={"Authorization": f"Bearer {user_token}"}
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            print_test_result("Shipping Order Creation", True, result)
+            
+            # Store shiprocket order ID if available
+            if "shiprocket_order_id" in result:
+                test_shiprocket_order_id = result["shiprocket_order_id"]
+            
+            return True
+        else:
+            print_test_result("Shipping Order Creation", False, 
+                             error=f"API returned status code {response.status_code}",
+                             response=response.json() if response.text else None)
+            return False
+    except Exception as e:
+        print_test_result("Shipping Order Creation", False, error=str(e))
+        return False
+
+def test_shipping_tracking():
+    """Test Shiprocket shipment tracking"""
+    
+    print("\n🔍 TESTING SHIPROCKET SHIPMENT TRACKING\n")
+    
+    # Test tracking by AWB code (if available)
+    if test_awb_code:
+        try:
+            response = requests.get(f"{BASE_URL}/shipping/track/{test_awb_code}")
+            
+            if response.status_code == 200:
+                print_test_result("Track Shipment by AWB", True, response.json())
+            else:
+                # This might fail if the AWB is not yet assigned or invalid
+                print_test_result("Track Shipment by AWB", False, 
+                                 error=f"API returned status code {response.status_code}",
+                                 response=response.json() if response.text else None)
+        except Exception as e:
+            print_test_result("Track Shipment by AWB", False, error=str(e))
+    else:
+        print_test_result("Track Shipment by AWB", False, 
+                         error="Skipped - No AWB code available")
+    
+    # Test order tracking
+    if not user_token or not test_order_id:
+        print_test_result("Order Tracking", False, error="Missing user token or order ID")
+        return False
+    
+    try:
+        response = requests.get(
+            f"{BASE_URL}/orders/{test_order_id}/track",
+            headers={"Authorization": f"Bearer {user_token}"}
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            print_test_result("Order Tracking", True, result)
+            
+            # Store AWB code if available for future tests
+            if result.get("tracking_number"):
+                test_awb_code = result["tracking_number"]
+            
+            return True
+        else:
+            print_test_result("Order Tracking", False, 
+                             error=f"API returned status code {response.status_code}",
+                             response=response.json() if response.text else None)
+            return False
+    except Exception as e:
+        print_test_result("Order Tracking", False, error=str(e))
+        return False
+
+def test_admin_shipping_endpoints():
+    """Test admin shipping management endpoints"""
+    
+    print("\n👨‍💼 TESTING ADMIN SHIPPING MANAGEMENT\n")
+    
+    if not admin_token:
+        print_test_result("Admin Shipping Management", False, error="Missing admin token")
+        return False
+    
+    # Test get all shipping orders
+    try:
+        response = requests.get(
+            f"{BASE_URL}/admin/shipping/orders",
+            headers={"Authorization": f"Bearer {admin_token}"}
+        )
+        
+        if response.status_code == 200:
+            shipping_orders = response.json()
+            print_test_result("Get All Shipping Orders", True, f"Retrieved {len(shipping_orders)} shipping orders")
+        else:
+            print_test_result("Get All Shipping Orders", False, 
+                             error=f"API returned status code {response.status_code}",
+                             response=response.json() if response.text else None)
+            return False
+    except Exception as e:
+        print_test_result("Get All Shipping Orders", False, error=str(e))
+        return False
+    
+    # Test mark order as shipped
+    if test_order_id:
+        try:
+            response = requests.put(
+                f"{BASE_URL}/admin/shipping/orders/{test_order_id}/ship",
+                headers={"Authorization": f"Bearer {admin_token}"}
+            )
+            
+            if response.status_code == 200:
+                print_test_result("Mark Order as Shipped", True, response.json())
+            else:
+                print_test_result("Mark Order as Shipped", False, 
+                                 error=f"API returned status code {response.status_code}",
+                                 response=response.json() if response.text else None)
+                return False
+        except Exception as e:
+            print_test_result("Mark Order as Shipped", False, error=str(e))
+            return False
+    else:
+        print_test_result("Mark Order as Shipped", False, error="No test order ID available")
+        return False
+    
+    return True
+
 def test_product_deletion():
     """Test product deletion (cleanup)"""
     
