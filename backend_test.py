@@ -860,6 +860,9 @@ def run_all_tests():
         "Payment Verification": test_payment_verification(),
         "Enhanced Order Creation": test_enhanced_order_creation(),
         "Payment Webhook": test_payment_webhook(),
+        "Shipping Order Creation": test_shipping_create_order(),
+        "Shipping Tracking": test_shipping_tracking(),
+        "Admin Shipping Management": test_admin_shipping_endpoints(),
         "Product Deletion": test_product_deletion()
     }
     
