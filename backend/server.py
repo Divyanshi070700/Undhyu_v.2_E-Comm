@@ -505,6 +505,19 @@ async def create_order(order: Order, user = Depends(get_current_user)):
             print(f"Razorpay order creation failed: {e}")
             # Continue without Razorpay integration if it fails
     
+    # Create Shiprocket order (after payment verification in real scenario)
+    # For now, we'll create it immediately for demo purposes
+    if order.shipping_address and SHIPROCKET_API_TOKEN:
+        shiprocket_result = create_shiprocket_order(
+            order.dict(),
+            order.shipping_address,
+            order_items,
+            total_amount
+        )
+        if shiprocket_result and shiprocket_result.get("status") == "success":
+            order.shiprocket_order_id = shiprocket_result.get("order_id")
+            # In real scenario, AWB generation would happen after pickup
+    
     order_dict = order.dict()
     orders_collection.insert_one(order_dict)
     
@@ -515,7 +528,8 @@ async def create_order(order: Order, user = Depends(get_current_user)):
         "message": "Order created successfully", 
         "order_id": order.id, 
         "total_amount": total_amount,
-        "razorpay_order_id": order.razorpay_order_id
+        "razorpay_order_id": order.razorpay_order_id,
+        "shiprocket_order_id": order.shiprocket_order_id
     }
 
 # Razorpay payment endpoints
