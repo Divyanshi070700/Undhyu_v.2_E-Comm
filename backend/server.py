@@ -20,6 +20,9 @@ DB_NAME = os.environ.get('DB_NAME', 'undhyu_ecommerce')
 JWT_SECRET = os.environ.get('JWT_SECRET', 'your-super-secret-jwt-key-change-in-production')
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
+SHIPROCKET_API_TOKEN = os.environ.get('SHIPROCKET_API_TOKEN')
+SHIPROCKET_CHANNEL_ID = os.environ.get('SHIPROCKET_CHANNEL_ID')
+SHIPROCKET_BASE_URL = os.environ.get('SHIPROCKET_BASE_URL', 'https://apiv2.shiprocket.in/v1/external')
 
 # Initialize Razorpay client
 if RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET:
