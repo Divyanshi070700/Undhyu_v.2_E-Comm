@@ -520,6 +520,7 @@ def test_payment_verification():
 
 def test_enhanced_order_creation():
     """Test enhanced order creation with Razorpay integration"""
+    global test_order_id, test_shiprocket_order_id
     
     print("\n🔄 TESTING ENHANCED ORDER CREATION WITH RAZORPAY\n")
     
@@ -547,7 +548,7 @@ def test_enhanced_order_creation():
         except Exception as e:
             print_test_result("Add Item to Cart for Enhanced Order", False, error=str(e))
     
-    # Test create order with Razorpay integration
+    # Test create order with Razorpay and Shiprocket integration
     try:
         response = requests.post(
             f"{BASE_URL}/orders", 
@@ -557,11 +558,13 @@ def test_enhanced_order_creation():
                 "items": [],  # This will be populated by the server from the cart
                 "total_amount": 0,  # This will be calculated by the server
                 "shipping_address": {
-                    "street": "123 Test Street",
-                    "city": "Test City",
-                    "state": "Test State",
-                    "zip": "12345",
-                    "country": "Test Country"
+                    "name": "Test Customer",
+                    "phone": "9876543210",
+                    "address": "123 Test Street",
+                    "city": "Mumbai",
+                    "state": "Maharashtra",
+                    "pincode": "400001",
+                    "country": "India"
                 },
                 "payment_status": "pending",
                 "order_status": "placed",
@@ -571,13 +574,24 @@ def test_enhanced_order_creation():
         )
         response.raise_for_status()
         result = response.json()
+        test_order_id = result.get("order_id")
+        test_shiprocket_order_id = result.get("shiprocket_order_id")
         
-        # Verify the response contains Razorpay order ID
-        if "razorpay_order_id" in result:
+        # Verify the response contains both Razorpay and Shiprocket order IDs
+        has_razorpay = "razorpay_order_id" in result
+        has_shiprocket = "shiprocket_order_id" in result
+        
+        if has_razorpay and has_shiprocket:
             print_test_result("Enhanced Order Creation", True, result)
         else:
+            missing_fields = []
+            if not has_razorpay:
+                missing_fields.append("razorpay_order_id")
+            if not has_shiprocket:
+                missing_fields.append("shiprocket_order_id")
+            
             print_test_result("Enhanced Order Creation", False, 
-                             error="Response missing razorpay_order_id field",
+                             error=f"Response missing fields: {', '.join(missing_fields)}",
                              response=result)
             return False
     except Exception as e:
