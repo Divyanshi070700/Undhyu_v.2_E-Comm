@@ -128,6 +128,37 @@ class PaymentVerification(BaseModel):
     razorpay_payment_id: str
     razorpay_signature: str
 
+class ShippingAddress(BaseModel):
+    name: str
+    phone: str
+    address: str
+    city: str
+    state: str
+    pincode: str
+    country: str = "India"
+
+class ShiprocketOrder(BaseModel):
+    order_id: str
+    order_date: str
+    pickup_location: str = "Primary"
+    billing_customer_name: str
+    billing_last_name: str = ""
+    billing_address: str
+    billing_city: str
+    billing_pincode: str
+    billing_state: str
+    billing_country: str = "India"
+    billing_email: str
+    billing_phone: str
+    shipping_is_billing: bool = True
+    order_items: List[Dict[str, Any]]
+    payment_method: str = "Prepaid"
+    sub_total: float
+    length: int = 10
+    breadth: int = 10
+    height: int = 10
+    weight: float = 0.5
+
 # Utility functions
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
