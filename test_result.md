@@ -317,6 +317,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Shipping order creation endpoint returns 500 Internal Server Error with message 'Shiprocket not configured'. The Shiprocket API token is not being properly recognized or initialized."
+      - working: false
+        agent: "testing"
+        comment: "After adding python-dotenv to load environment variables from .env file, the endpoint now returns 500 Internal Server Error with message 'Failed to create shipping order'. The Shiprocket API token is being loaded but there might be issues with the API request or response handling."
 
   - task: "Shipment Tracking"
     implemented: true
