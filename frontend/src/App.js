@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import './App.css';
 
 // Context for cart management
@@ -26,27 +26,6 @@ const api = {
     return response.json();
   },
 
-  adminLogin: async (email, password) => {
-    const response = await fetch(`${API_BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    return response.json();
-  },
-
-  createProduct: async (productData, token) => {
-    const response = await fetch(`${API_BASE}/api/products`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(productData)
-    });
-    return response.json();
-  },
-
   createGuestOrder: async (orderData) => {
     const response = await fetch(`${API_BASE}/api/guest/orders`, {
       method: 'POST',
@@ -57,52 +36,107 @@ const api = {
   }
 };
 
-// Header Component
+// Header Component (Koskii-inspired)
 const Header = () => {
   const { cartCount } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
 
   return (
-    <header className="bg-white shadow-lg sticky top-0 z-50">
+    <header className="bg-white shadow-sm sticky top-0 z-50">
+      {/* Top banner */}
+      <div className="bg-black text-white text-center py-2 text-sm">
+        Free shipping on orders above ₹999 | COD Available
+      </div>
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex-shrink-0 flex items-center">
-            <h1 className="text-3xl font-bold text-pink-600">Undhyu</h1>
-            <span className="ml-2 text-sm text-gray-500">Designer Collection</span>
+          {/* Logo */}
+          <Link to="/" className="flex-shrink-0">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-wide">UNDHYU</h1>
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Designer Collection</span>
           </Link>
 
-          <nav className="hidden md:flex space-x-8">
-            <Link to="/" className="text-gray-700 hover:text-pink-600 px-3 py-2 text-sm font-medium">Home</Link>
-            <Link to="/products" className="text-gray-700 hover:text-pink-600 px-3 py-2 text-sm font-medium">All Products</Link>
-            <Link to="/products?category=sarees" className="text-gray-700 hover:text-pink-600 px-3 py-2 text-sm font-medium">Sarees</Link>
-            <Link to="/products?category=lehengas" className="text-gray-700 hover:text-pink-600 px-3 py-2 text-sm font-medium">Lehengas</Link>
-            <Link to="/products?category=kurtis" className="text-gray-700 hover:text-pink-600 px-3 py-2 text-sm font-medium">Kurtis</Link>
-            <Link to="/products?category=jewelry" className="text-gray-700 hover:text-pink-600 px-3 py-2 text-sm font-medium">Jewelry</Link>
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex space-x-8">
+            <Link to="/" className={`text-sm font-medium tracking-wide uppercase transition-colors ${location.pathname === '/' ? 'text-black border-b-2 border-black pb-1' : 'text-gray-600 hover:text-black'}`}>
+              Home
+            </Link>
+            <Link to="/products" className={`text-sm font-medium tracking-wide uppercase transition-colors ${location.pathname === '/products' ? 'text-black border-b-2 border-black pb-1' : 'text-gray-600 hover:text-black'}`}>
+              All Products
+            </Link>
+            <Link to="/products?category=sarees" className="text-sm font-medium text-gray-600 hover:text-black tracking-wide uppercase transition-colors">
+              Sarees
+            </Link>
+            <Link to="/products?category=lehengas" className="text-sm font-medium text-gray-600 hover:text-black tracking-wide uppercase transition-colors">
+              Lehengas
+            </Link>
+            <Link to="/products?category=kurtis" className="text-sm font-medium text-gray-600 hover:text-black tracking-wide uppercase transition-colors">
+              Kurtis
+            </Link>
+            <Link to="/products?category=jewelry" className="text-sm font-medium text-gray-600 hover:text-black tracking-wide uppercase transition-colors">
+              Jewelry
+            </Link>
           </nav>
 
+          {/* Search and Actions */}
           <div className="flex items-center space-x-4">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="hidden md:block w-64 pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-            />
+            {/* Search */}
+            <div className="hidden md:flex items-center">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-48 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400"
+              />
+            </div>
 
-            <Link to="/cart" className="p-2 text-gray-600 hover:text-pink-600 relative">
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 2.5M7 13l2.5 2.5m6 0L19 12M17 21a2 2 0 100-4 2 2 0 000 4zm-8 0a2 2 0 100-4 2 2 0 000 4z" />
+            {/* Wishlist */}
+            <button className="p-2 text-gray-600 hover:text-black transition-colors">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+
+            {/* Cart */}
+            <Link to="/cart" className="p-2 text-gray-600 hover:text-black transition-colors relative">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-black text-white text-xs rounded-full h-4 w-4 flex items-center justify-center text-[10px]">
                   {cartCount}
                 </span>
               )}
             </Link>
 
-            <Link to="/admin" className="text-gray-700 hover:text-pink-600 text-sm">Admin</Link>
+            {/* Mobile menu button */}
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden p-2 text-gray-600 hover:text-black"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="lg:hidden py-4 border-t border-gray-200">
+            <div className="space-y-2">
+              <Link to="/" className="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-black uppercase tracking-wide">Home</Link>
+              <Link to="/products" className="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-black uppercase tracking-wide">All Products</Link>
+              <Link to="/products?category=sarees" className="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-black uppercase tracking-wide">Sarees</Link>
+              <Link to="/products?category=lehengas" className="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-black uppercase tracking-wide">Lehengas</Link>
+              <Link to="/products?category=kurtis" className="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-black uppercase tracking-wide">Kurtis</Link>
+              <Link to="/products?category=jewelry" className="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-black uppercase tracking-wide">Jewelry</Link>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );
@@ -154,18 +188,18 @@ const HomePage = () => {
 
   return (
     <div>
-      {/* Hero Carousel */}
-      <div className="relative h-[60vh] md:h-[70vh] overflow-hidden">
+      {/* Hero Section */}
+      <div className="relative h-[50vh] md:h-[60vh] overflow-hidden">
         {slides.map((slide, index) => (
           <div key={slide.id} className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'}`}>
             <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-              <div className="text-center text-white px-4">
-                <h1 className="text-4xl md:text-6xl font-bold mb-4">{slide.title}</h1>
-                <p className="text-xl md:text-2xl mb-8">{slide.subtitle}</p>
+            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+              <div className="text-center text-white px-4 max-w-2xl">
+                <h1 className="text-3xl md:text-5xl font-light mb-4 tracking-wide">{slide.title}</h1>
+                <p className="text-lg md:text-xl mb-8 font-light">{slide.subtitle}</p>
                 <button 
                   onClick={() => navigate('/products')}
-                  className="bg-pink-600 hover:bg-pink-700 text-white px-8 py-3 rounded-full text-lg font-semibold transition-colors"
+                  className="bg-white text-black px-8 py-3 text-sm font-medium tracking-wider uppercase hover:bg-gray-100 transition-colors"
                 >
                   {slide.cta}
                 </button>
@@ -175,21 +209,21 @@ const HomePage = () => {
         ))}
       </div>
 
-      {/* Collections */}
-      <section className="py-16 bg-gray-50">
+      {/* Collections Grid */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Our Collections</h2>
-            <p className="text-xl text-gray-600">Discover handcrafted elegance from artisans across India</p>
+            <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-4 tracking-wide">Our Collections</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">Discover handcrafted elegance from artisans across India</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
             {collections.map((collection) => (
               <div key={collection.id} className="group cursor-pointer" onClick={() => navigate('/products')}>
-                <div className="relative overflow-hidden rounded-lg bg-white shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                  <img src={collection.image} alt={collection.name} className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white bg-gradient-to-t from-black to-transparent">
-                    <h3 className="text-xl font-semibold mb-2">{collection.name}</h3>
-                    <p className="text-pink-300 font-medium">{collection.count}</p>
+                <div className="relative overflow-hidden bg-white">
+                  <img src={collection.image} alt={collection.name} className="w-full h-48 md:h-64 object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent text-white">
+                    <h3 className="text-sm md:text-lg font-medium mb-1">{collection.name}</h3>
+                    <p className="text-xs md:text-sm text-gray-200">{collection.count}</p>
                   </div>
                 </div>
               </div>
@@ -199,56 +233,102 @@ const HomePage = () => {
       </section>
 
       {/* Featured Products */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Featured Products</h2>
-            <p className="text-xl text-gray-600">Handpicked favorites from our latest collection</p>
+            <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-4 tracking-wide">Featured Products</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">Handpicked favorites from our latest collection</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
             {featuredProducts.map((product) => (
-              <div key={product.id} className="group">
-                <div className="bg-white rounded-lg shadow-md overflow-hidden group-hover:shadow-lg transition-shadow duration-300">
-                  <div className="relative cursor-pointer" onClick={() => navigate(`/product/${product.id}`)}>
-                    <img src={product.images[0]} alt={product.name} className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300" />
+              <div key={product.id} className="group bg-white">
+                <div className="relative overflow-hidden">
+                  <img
+                    src={product.images[0]}
+                    alt={product.name}
+                    className="w-full h-48 md:h-80 object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                    onClick={() => navigate(`/product/${product.id}`)}
+                  />
+                  {product.original_price > product.price && (
+                    <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 text-xs font-medium">
+                      {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
+                    </div>
+                  )}
+                  <button className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg className="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="p-4">
+                  <h3 className="text-sm md:text-base font-medium text-gray-900 mb-2 line-clamp-1">{product.name}</h3>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="text-sm md:text-base font-semibold text-gray-900">₹{product.price}</span>
                     {product.original_price > product.price && (
-                      <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">
-                        {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
-                      </div>
+                      <span className="text-xs md:text-sm text-gray-500 line-through">₹{product.original_price}</span>
                     )}
                   </div>
-                  <div className="p-4">
-                    <div className="text-sm text-gray-500 mb-1">{product.category}</div>
-                    <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg font-bold text-gray-900">₹{product.price}</span>
-                        {product.original_price > product.price && (
-                          <span className="text-sm text-gray-500 line-through">₹{product.original_price}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          addToCart(product);
-                          alert('Added to cart!');
-                        }}
-                        className="flex-1 bg-pink-600 text-white py-2 px-4 rounded-md hover:bg-pink-700 transition-colors text-sm"
-                      >
-                        Add to Cart
-                      </button>
-                      <button 
-                        onClick={() => navigate(`/product/${product.id}`)}
-                        className="bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors text-sm"
-                      >
-                        View
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => {
+                      addToCart(product);
+                      alert('Added to cart!');
+                    }}
+                    className="w-full bg-black text-white py-2 text-xs md:text-sm font-medium tracking-wider uppercase hover:bg-gray-800 transition-colors"
+                  >
+                    Add to Cart
+                  </button>
                 </div>
               </div>
             ))}
+          </div>
+          <div className="text-center mt-12">
+            <Link 
+              to="/products"
+              className="inline-block bg-black text-white px-8 py-3 text-sm font-medium tracking-wider uppercase hover:bg-gray-800 transition-colors"
+            >
+              View All Products
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-6 tracking-wide">Crafted with Love, Delivered with Care</h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                At Undhyu, we believe in preserving the rich heritage of Indian craftsmanship. Each piece in our collection 
+                is carefully curated from skilled artisans across the country, bringing you authentic designs that tell a story 
+                of tradition and elegance.
+              </p>
+              <p className="text-gray-600 mb-8 leading-relaxed">
+                From the silk weavers of Banaras to the embroidery artists of Lucknow, we work directly with craftspeople 
+                to ensure fair trade and premium quality.
+              </p>
+              <div className="grid grid-cols-3 gap-6 text-center">
+                <div>
+                  <div className="text-2xl md:text-3xl font-light text-gray-900 mb-2">500+</div>
+                  <div className="text-xs md:text-sm text-gray-600 uppercase tracking-wide">Artisan Partners</div>
+                </div>
+                <div>
+                  <div className="text-2xl md:text-3xl font-light text-gray-900 mb-2">50,000+</div>
+                  <div className="text-xs md:text-sm text-gray-600 uppercase tracking-wide">Happy Customers</div>
+                </div>
+                <div>
+                  <div className="text-2xl md:text-3xl font-light text-gray-900 mb-2">25+</div>
+                  <div className="text-xs md:text-sm text-gray-600 uppercase tracking-wide">States Covered</div>
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              <img 
+                src="https://images.unsplash.com/flagged/photo-1570055349452-29232699cc63" 
+                alt="Traditional craftsmanship"
+                className="w-full h-96 object-cover"
+              />
+            </div>
           </div>
         </div>
       </section>
