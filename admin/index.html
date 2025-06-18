@@ -263,27 +263,40 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
+            console.log('Attempting login with:', email);
+
             try {
                 const response = await fetch(`${API_BASE}/api/auth/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors',
                     body: JSON.stringify({ email, password })
                 });
                 
+                console.log('Response status:', response.status);
                 const result = await response.json();
                 console.log('Login result:', result);
                 
-                if (result.token && result.user && result.user.is_admin) {
-                    adminToken = result.token;
-                    localStorage.setItem('adminToken', adminToken);
-                    showDashboard();
-                    alert('Login successful!');
+                if (response.ok && result.token) {
+                    if (result.user && result.user.is_admin) {
+                        adminToken = result.token;
+                        localStorage.setItem('adminToken', adminToken);
+                        showDashboard();
+                        console.log('Admin login successful');
+                    } else {
+                        alert('Access denied: Admin privileges required');
+                        console.log('User is not admin:', result.user);
+                    }
                 } else {
-                    alert('Invalid admin credentials or not an admin user');
+                    alert('Login failed: ' + (result.detail || 'Invalid credentials'));
+                    console.log('Login failed:', result);
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                alert('Login failed. Please try again.');
+                alert('Login failed: Network error. Check console for details.');
             }
         });
 
