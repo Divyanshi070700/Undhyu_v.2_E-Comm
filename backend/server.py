@@ -760,6 +760,85 @@ async def get_order_tracking(order_id: str, user = Depends(get_current_user)):
     
     return tracking_info
 
+# Guest checkout endpoints (no authentication required)
+@app.post("/api/guest/orders")
+async def create_guest_order(order_data: dict):
+    """Create order for guest users without authentication"""
+    try:
+        order_id = str(uuid.uuid4())
+        current_time = datetime.now()
+        
+        # Create order document
+        guest_order = {
+            "id": order_id,
+            "customer_details": order_data.get("customer_details", {}),
+            "items": order_data.get("items", []),
+            "total_amount": order_data.get("total_amount", 0),
+            "payment_method": order_data.get("payment_method", "razorpay"),
+            "payment_status": "pending",
+            "order_status": "placed",
+            "is_guest": True,
+            "created_at": current_time,
+            "updated_at": current_time
+        }
+        
+        # Create Razorpay order if configured
+        if razorpay_client and guest_order["total_amount"] > 0:
+            try:
+                razorpay_order = razorpay_client.order.create({
+                    "amount": int(guest_order["total_amount"] * 100),  # Convert to paise
+                    "currency": "INR",
+                    "receipt": f"guest_order_{order_id}",
+                    "payment_capture": 1
+                })
+                guest_order["razorpay_order_id"] = razorpay_order["id"]
+            except Exception as e:
+                print(f"Razorpay order creation failed for guest: {e}")
+        
+        # Create Shiprocket order if configured
+        if SHIPROCKET_API_TOKEN and guest_order["customer_details"]:
+            shiprocket_result = create_shiprocket_order(
+                guest_order,
+                guest_order["customer_details"],
+                guest_order["items"],
+                guest_order["total_amount"]
+            )
+            if shiprocket_result and shiprocket_result.get("status") == "success":
+                guest_order["shiprocket_order_id"] = shiprocket_result.get("order_id")
+        
+        # Save to database
+        orders_collection.insert_one(guest_order)
+        
+        return {
+            "message": "Guest order created successfully",
+            "order_id": order_id,
+            "total_amount": guest_order["total_amount"],
+            "razorpay_order_id": guest_order.get("razorpay_order_id"),
+            "shiprocket_order_id": guest_order.get("shiprocket_order_id")
+        }
+        
+    except Exception as e:
+        print(f"Guest order creation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create guest order")
+
+@app.get("/api/guest/track/{order_id}")
+async def track_guest_order(order_id: str):
+    """Track guest order using order ID"""
+    order = orders_collection.find_one({"id": order_id, "is_guest": True})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    order.pop("_id", None)
+    return {
+        "order_id": order_id,
+        "order_status": order.get("order_status", "placed"),
+        "payment_status": order.get("payment_status", "pending"),
+        "total_amount": order.get("total_amount", 0),
+        "items": order.get("items", []),
+        "tracking_number": order.get("tracking_number"),
+        "estimated_delivery": "3-5 business days"
+    }
+
 @app.get("/api/admin/orders")
 async def get_all_orders(admin_user = Depends(get_admin_user)):
     orders = list(orders_collection.find({}))
