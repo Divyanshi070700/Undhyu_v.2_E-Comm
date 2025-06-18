@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undhyu Admin Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .admin-gradient { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="adminApp">
+        <!-- Login Page -->
+        <div id="loginPage" class="min-h-screen admin-gradient flex items-center justify-center">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">Undhyu</h1>
+                    <p class="text-gray-600">Admin Portal</p>
+                </div>
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" id="email" value="admin@undhyu.com" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" id="password" value="admin123"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold transition-colors">
+                        Login to Admin Portal
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="dashboardPage" class="hidden min-h-screen bg-gray-50">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b">
+                <div class="px-6 py-4 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Undhyu Admin</h1>
+                        <p class="text-gray-600">Manage your fashion store</p>
+                    </div>
+                    <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                        Logout
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex">
+                <!-- Sidebar -->
+                <nav class="w-64 bg-white shadow-lg h-screen sticky top-0">
+                    <div class="p-6">
+                        <ul class="space-y-2">
+                            <li>
+                                <button class="nav-btn w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors" data-page="dashboard">
+                                    📊 Dashboard
+                                </button>
+                            </li>
+                            <li>
+                                <button class="nav-btn w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors" data-page="products">
+                                    🛍️ Products
+                                </button>
+                            </li>
+                            <li>
+                                <button class="nav-btn w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors" data-page="orders">
+                                    📦 Orders
+                                </button>
+                            </li>
+                            <li>
+                                <button class="nav-btn w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors" data-page="collections">
+                                    📂 Collections
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <!-- Main Content -->
+                <main class="flex-1 p-6">
+                    <!-- Dashboard View -->
+                    <div id="dashboardView" class="page-content">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard Overview</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-600 text-sm">Total Products</p>
+                                        <p class="text-2xl font-bold text-gray-800" id="totalProducts">0</p>
+                                    </div>
+                                    <div class="bg-blue-100 p-3 rounded-full">
+                                        <span class="text-blue-600 text-xl">🛍️</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-600 text-sm">Total Orders</p>
+                                        <p class="text-2xl font-bold text-gray-800" id="totalOrders">0</p>
+                                    </div>
+                                    <div class="bg-green-100 p-3 rounded-full">
+                                        <span class="text-green-600 text-xl">📦</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-600 text-sm">Revenue</p>
+                                        <p class="text-2xl font-bold text-gray-800">₹0</p>
+                                    </div>
+                                    <div class="bg-purple-100 p-3 rounded-full">
+                                        <span class="text-purple-600 text-xl">💰</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-gray-600 text-sm">Customers</p>
+                                        <p class="text-2xl font-bold text-gray-800">0</p>
+                                    </div>
+                                    <div class="bg-pink-100 p-3 rounded-full">
+                                        <span class="text-pink-600 text-xl">👥</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products View -->
+                    <div id="productsView" class="page-content hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">Products Management</h2>
+                            <button id="addProductBtn" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold">
+                                + Add Product
+                            </button>
+                        </div>
+
+                        <!-- Add Product Form -->
+                        <div id="addProductForm" class="hidden bg-white p-6 rounded-xl shadow-sm border mb-6">
+                            <h3 class="text-lg font-semibold mb-4">Add New Product</h3>
+                            <form class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
+                                        <input type="text" id="productName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                                        <select id="productCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                                            <option value="">Select Category</option>
+                                            <option value="Designer Sarees">Designer Sarees</option>
+                                            <option value="Royal Lehengas">Royal Lehengas</option>
+                                            <option value="Designer Kurtis">Designer Kurtis</option>
+                                            <option value="Premium Jewelry">Premium Jewelry</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Price (₹)</label>
+                                        <input type="number" id="productPrice" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Original Price (₹)</label>
+                                        <input type="number" id="productOriginalPrice" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Quantity</label>
+                                        <input type="number" id="productStock" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Material</label>
+                                        <input type="text" id="productMaterial" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Origin</label>
+                                        <input type="text" id="productOrigin" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Sizes (comma separated)</label>
+                                        <input type="text" id="productSizes" placeholder="S, M, L, XL" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Colors (comma separated)</label>
+                                        <input type="text" id="productColors" placeholder="Red, Blue, Green" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                                    <textarea id="productDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required></textarea>
+                                </div>
+                                <div class="flex gap-4">
+                                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                        Add Product
+                                    </button>
+                                    <button type="button" id="cancelAddProduct" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Products List -->
+                        <div class="bg-white rounded-xl shadow-sm border">
+                            <div class="p-6">
+                                <h3 class="text-lg font-semibold mb-4">All Products</h3>
+                                <div id="productsList" class="space-y-4">
+                                    <p class="text-gray-500">No products added yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Orders View -->
+                    <div id="ordersView" class="page-content hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Orders Management</h2>
+                        <div class="bg-white rounded-xl shadow-sm border p-6">
+                            <p class="text-gray-500">Orders will appear here when customers place orders.</p>
+                        </div>
+                    </div>
+
+                    <!-- Collections View -->
+                    <div id="collectionsView" class="page-content hidden">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Collections Management</h2>
+                        <div class="bg-white rounded-xl shadow-sm border p-6">
+                            <p class="text-gray-500">Manage your product collections here.</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Admin Portal JavaScript
+        const API_BASE = 'https://54a1d159-397c-45f6-b43d-7c17eb879b5c.preview.emergentagent.com';
+        let adminToken = localStorage.getItem('adminToken');
+
+        // DOM Elements
+        const loginPage = document.getElementById('loginPage');
+        const dashboardPage = document.getElementById('dashboardPage');
+        const loginForm = document.getElementById('loginForm');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const pageContents = document.querySelectorAll('.page-content');
+        const addProductBtn = document.getElementById('addProductBtn');
+        const addProductForm = document.getElementById('addProductForm');
+        const cancelAddProduct = document.getElementById('cancelAddProduct');
+
+        // Check if already logged in
+        if (adminToken) {
+            showDashboard();
+        }
+
+        // Login Form Handler
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.token && result.user.is_admin) {
+                    adminToken = result.token;
+                    localStorage.setItem('adminToken', adminToken);
+                    showDashboard();
+                } else {
+                    alert('Invalid admin credentials');
+                }
+            } catch (error) {
+                alert('Login failed. Please try again.');
+            }
+        });
+
+        // Logout Handler
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('adminToken');
+            adminToken = null;
+            showLogin();
+        });
+
+        // Navigation
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = btn.dataset.page;
+                showPage(page);
+                
+                // Update active nav
+                navBtns.forEach(b => b.classList.remove('bg-blue-50', 'text-blue-600'));
+                btn.classList.add('bg-blue-50', 'text-blue-600');
+            });
+        });
+
+        // Add Product Form Toggle
+        addProductBtn.addEventListener('click', () => {
+            addProductForm.classList.toggle('hidden');
+        });
+
+        cancelAddProduct.addEventListener('click', () => {
+            addProductForm.classList.add('hidden');
+        });
+
+        // Add Product Form Handler
+        addProductForm.querySelector('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const productData = {
+                name: document.getElementById('productName').value,
+                category: document.getElementById('productCategory').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                original_price: parseFloat(document.getElementById('productOriginalPrice').value) || null,
+                stock: parseInt(document.getElementById('productStock').value),
+                material: document.getElementById('productMaterial').value,
+                origin: document.getElementById('productOrigin').value,
+                sizes: document.getElementById('productSizes').value.split(',').map(s => s.trim()).filter(s => s),
+                colors: document.getElementById('productColors').value.split(',').map(c => c.trim()).filter(c => c),
+                description: document.getElementById('productDescription').value,
+                images: ['https://images.unsplash.com/photo-1609748340041-f5d61e061ebc'], // Placeholder
+                is_featured: true
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/api/products`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify(productData)
+                });
+
+                if (response.ok) {
+                    alert('Product added successfully!');
+                    addProductForm.classList.add('hidden');
+                    e.target.reset();
+                    loadProducts();
+                } else {
+                    alert('Failed to add product');
+                }
+            } catch (error) {
+                alert('Error adding product');
+            }
+        });
+
+        // Functions
+        function showLogin() {
+            loginPage.classList.remove('hidden');
+            dashboardPage.classList.add('hidden');
+        }
+
+        function showDashboard() {
+            loginPage.classList.add('hidden');
+            dashboardPage.classList.remove('hidden');
+            loadDashboardData();
+        }
+
+        function showPage(page) {
+            pageContents.forEach(content => content.classList.add('hidden'));
+            document.getElementById(`${page}View`).classList.remove('hidden');
+            
+            if (page === 'products') {
+                loadProducts();
+            }
+        }
+
+        async function loadDashboardData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('totalProducts').textContent = data.total_products || 0;
+                    document.getElementById('totalOrders').textContent = data.total_orders || 0;
+                }
+            } catch (error) {
+                console.log('Dashboard data load error:', error);
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/api/products`);
+                const products = await response.json();
+                
+                const productsList = document.getElementById('productsList');
+                
+                if (products.length === 0) {
+                    productsList.innerHTML = '<p class="text-gray-500">No products added yet.</p>';
+                    return;
+                }
+
+                productsList.innerHTML = products.map(product => `
+                    <div class="border rounded-lg p-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <img src="${product.images?.[0] || 'https://via.placeholder.com/80'}" alt="${product.name}" class="w-16 h-16 object-cover rounded">
+                            <div>
+                                <h4 class="font-semibold">${product.name}</h4>
+                                <p class="text-gray-600">${product.category}</p>
+                                <p class="text-green-600 font-semibold">₹${product.price}</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Edit</button>
+                            <button class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.log('Products load error:', error);
+            }
+        }
+
+        // Initialize with dashboard view
+        if (adminToken) {
+            showPage('dashboard');
+            navBtns[0].classList.add('bg-blue-50', 'text-blue-600');
+        }
+    </script>
+</body>
+</html>
