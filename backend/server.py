@@ -54,7 +54,7 @@ app = FastAPI(title="Undhyu E-commerce API", version="1.0.0")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, replace with your domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
