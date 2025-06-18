@@ -356,6 +356,21 @@ backend:
       - working: true
         agent: "testing"
         comment: "Admin shipping management endpoints work correctly. Get all shipping orders returns the list of orders with shipping information. Mark order as shipped successfully updates the order status."
+        
+  - task: "Admin Product Creation"
+    implemented: true
+    working: true
+    file: "server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "unknown"
+        agent: "main"
+        comment: "Implemented product creation endpoint with admin authentication"
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested admin product creation functionality. Admin can log in with the provided credentials (admin@undhyu.com/admin123), create products with the specified data format, and the products are correctly saved to the database and can be retrieved."
 
 frontend:
   - task: "E-commerce Homepage"
