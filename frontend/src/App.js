@@ -1,37 +1,16 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import './App.css';
 
-// Context for authentication and cart
-const AuthContext = createContext();
+// Context for cart management
 const CartContext = createContext();
 
 // Custom hooks
-const useAuth = () => useContext(AuthContext);
 const useCart = () => useContext(CartContext);
 
 // API functions
 const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 const api = {
-  // Auth endpoints
-  login: async (email, password) => {
-    const response = await fetch(`${API_BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    return response.json();
-  },
-  
-  register: async (userData) => {
-    const response = await fetch(`${API_BASE}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData)
-    });
-    return response.json();
-  },
-  
   // Product endpoints
   getProducts: async (filters = {}) => {
     const queryParams = new URLSearchParams(filters).toString();
@@ -44,76 +23,6 @@ const api = {
     return response.json();
   },
   
-  createProduct: async (productData, token) => {
-    const response = await fetch(`${API_BASE}/api/products`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(productData)
-    });
-    return response.json();
-  },
-  
-  // Cart endpoints
-  getCart: async (token) => {
-    const response = await fetch(`${API_BASE}/api/cart`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return response.json();
-  },
-  
-  addToCart: async (cartItem, token) => {
-    const response = await fetch(`${API_BASE}/api/cart`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(cartItem)
-    });
-    return response.json();
-  },
-  
-  // Order endpoints
-  createOrder: async (orderData, token) => {
-    const response = await fetch(`${API_BASE}/api/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(orderData)
-    });
-    return response.json();
-  },
-  
-  // Payment endpoints
-  createPaymentOrder: async (amount, token) => {
-    const response = await fetch(`${API_BASE}/api/payment/create-order`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ amount: amount * 100 }) // Convert to paise
-    });
-    return response.json();
-  },
-  
-  verifyPayment: async (paymentData, token) => {
-    const response = await fetch(`${API_BASE}/api/payment/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(paymentData)
-    });
-    return response.json();
-  },
-  
   getCategories: async () => {
     const response = await fetch(`${API_BASE}/api/categories`);
     return response.json();
@@ -122,238 +31,28 @@ const api = {
   searchProducts: async (query) => {
     const response = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`);
     return response.json();
+  },
+
+  // Guest checkout endpoint
+  createGuestOrder: async (orderData) => {
+    const response = await fetch(`${API_BASE}/api/guest/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(orderData)
+    });
+    return response.json();
   }
 };
 
 // Components
-const PaymentModal = ({ isOpen, onClose, cartItems, totalAmount }) => {
-  const { user, token } = useAuth();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState({
-    name: user?.name || '',
-    phone: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: ''
-  });
-
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const handlePayment = async () => {
-    if (!user || !token) {
-      alert('Please login to continue');
-      return;
-    }
-
-    // Validate shipping address
-    if (!shippingAddress.name || !shippingAddress.phone || !shippingAddress.address) {
-      alert('Please fill all required shipping details');
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      // Load Razorpay script
-      const isScriptLoaded = await loadRazorpayScript();
-      if (!isScriptLoaded) {
-        throw new Error('Failed to load Razorpay script');
-      }
-
-      // Create payment order
-      const paymentOrder = await api.createPaymentOrder(totalAmount, token);
-      
-      const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID,
-        amount: paymentOrder.amount,
-        currency: paymentOrder.currency,
-        name: 'Undhyu',
-        description: 'Fashion Purchase',
-        order_id: paymentOrder.order_id,
-        handler: async (response) => {
-          try {
-            // Verify payment
-            await api.verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            }, token);
-            
-            // Create order
-            await api.createOrder({
-              shipping_address: shippingAddress,
-              payment_method: 'razorpay'
-            }, token);
-            
-            alert('Payment successful! Your order has been placed.');
-            onClose();
-            window.location.reload(); // Refresh to update cart
-          } catch (error) {
-            console.error('Payment verification failed:', error);
-            alert('Payment verification failed. Please contact support.');
-          }
-        },
-        prefill: {
-          name: shippingAddress.name,
-          email: user.email,
-          contact: shippingAddress.phone
-        },
-        theme: {
-          color: '#9333EA'
-        },
-        modal: {
-          ondismiss: () => {
-            setIsProcessing(false);
-          }
-        }
-      };
-      
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-      
-    } catch (error) {
-      console.error('Payment initiation failed:', error);
-      alert('Failed to initiate payment. Please try again.');
-      setIsProcessing(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Checkout</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <div className="p-6">
-          {/* Order Summary */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Order Summary</h3>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              {cartItems.map((item, index) => (
-                <div key={index} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
-                  <div>
-                    <span className="font-medium">{item.product?.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">x{item.quantity}</span>
-                    {item.size && <span className="text-sm text-gray-500 ml-2">Size: {item.size}</span>}
-                  </div>
-                  <span className="font-semibold">₹{(item.product?.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between items-center pt-3 mt-3 border-t border-gray-300">
-                <span className="text-lg font-bold">Total</span>
-                <span className="text-lg font-bold text-purple-600">₹{totalAmount.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Shipping Address */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Shipping Address</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Full Name *"
-                value={shippingAddress.name}
-                onChange={(e) => setShippingAddress({...shippingAddress, name: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                required
-              />
-              <input
-                type="tel"
-                placeholder="Phone Number *"
-                value={shippingAddress.phone}
-                onChange={(e) => setShippingAddress({...shippingAddress, phone: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Address *"
-                value={shippingAddress.address}
-                onChange={(e) => setShippingAddress({...shippingAddress, address: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 md:col-span-2"
-                required
-              />
-              <input
-                type="text"
-                placeholder="City"
-                value={shippingAddress.city}
-                onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              />
-              <input
-                type="text"
-                placeholder="State"
-                value={shippingAddress.state}
-                onChange={(e) => setShippingAddress({...shippingAddress, state: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              />
-              <input
-                type="text"
-                placeholder="Pincode"
-                value={shippingAddress.pincode}
-                onChange={(e) => setShippingAddress({...shippingAddress, pincode: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-          </div>
-
-          {/* Payment Button */}
-          <button
-            onClick={handlePayment}
-            disabled={isProcessing}
-            className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isProcessing ? (
-              <>
-                <div className="spinner mr-2"></div>
-                Processing...
-              </>
-            ) : (
-              <>
-                Pay ₹{totalAmount.toFixed(2)} with Razorpay
-                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K" alt="Razorpay" className="ml-2 w-5 h-5" />
-              </>
-            )}
-          </button>
-          
-          <p className="text-sm text-gray-500 text-center mt-3">
-            Secure payment powered by Razorpay
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const Header = () => {
-  const { user, logout } = useAuth();
-  const { cartCount } = useCart();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { cartCount, toggleCart } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [showCart, setShowCart] = useState(false);
-  const [cartItems, setCartItems] = useState([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleSearch = async (query) => {
     if (query.length > 2) {
@@ -369,242 +68,238 @@ const Header = () => {
     }
   };
 
-  const handleCartClick = async () => {
-    if (!user) {
-      alert('Please login to view cart');
-      return;
-    }
-    
-    try {
-      const cart = await api.getCart(localStorage.getItem('token'));
-      setCartItems(cart);
-      setShowCart(true);
-    } catch (error) {
-      console.error('Failed to fetch cart:', error);
-    }
-  };
-
   return (
-    <>
-      <header className="bg-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-2xl font-bold text-purple-600">Undhyu</h1>
-              <span className="ml-2 text-sm text-gray-500">Women's Fashion</span>
-            </div>
+    <header className="bg-white shadow-lg sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <div className="flex-shrink-0 flex items-center">
+            <h1 className="text-3xl font-bold text-pink-600">Undhyu</h1>
+            <span className="ml-2 text-sm text-gray-500">Designer Collection</span>
+          </div>
 
-            {/* Search Bar */}
-            <div className="flex-1 max-w-lg mx-8 relative">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search for products..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    handleSearch(e.target.value);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex space-x-8">
+            <a href="#home" className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
+            <a href="#collections" className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium">Collections</a>
+            <a href="#sarees" className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium">Sarees</a>
+            <a href="#lehengas" className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium">Lehengas</a>
+            <a href="#kurtis" className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium">Kurtis</a>
+            <a href="#jewelry" className="text-gray-700 hover:text-pink-600 px-3 py-2 rounded-md text-sm font-medium">Jewelry</a>
+          </nav>
+
+          {/* Search Bar */}
+          <div className="flex-1 max-w-lg mx-8 relative">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search for sarees, lehengas, jewelry..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  handleSearch(e.target.value);
+                }}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
-              
-              {/* Search Results Dropdown */}
-              {showSearchResults && searchResults.length > 0 && (
-                <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50">
-                  {searchResults.map((product) => (
-                    <div key={product.id} className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                         onClick={() => {
-                           setShowSearchResults(false);
-                           setSearchQuery('');
-                           // Navigate to product page
-                         }}>
-                      <div className="flex items-center space-x-3">
-                        {product.images && product.images[0] && (
-                          <img src={product.images[0]} alt={product.name} className="w-12 h-12 object-cover rounded" />
-                        )}
-                        <div>
-                          <h4 className="font-medium text-gray-900">{product.name}</h4>
-                          <p className="text-sm text-gray-500">₹{product.price}</p>
-                        </div>
+            </div>
+            
+            {/* Search Results Dropdown */}
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto z-50">
+                {searchResults.map((product) => (
+                  <div key={product.id} className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                    <div className="flex items-center space-x-3">
+                      {product.images && product.images[0] && (
+                        <img src={product.images[0]} alt={product.name} className="w-12 h-12 object-cover rounded" />
+                      )}
+                      <div>
+                        <h4 className="font-medium text-gray-900">{product.name}</h4>
+                        <p className="text-sm text-gray-500">₹{product.price}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Cart and Menu */}
+          <div className="flex items-center space-x-4">
+            {/* Cart */}
+            <button onClick={toggleCart} className="p-2 text-gray-600 hover:text-pink-600 relative">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 2.5M7 13l2.5 2.5m6 0L19 12M17 21a2 2 0 100-4 2 2 0 000 4zm-8 0a2 2 0 100-4 2 2 0 000 4z" />
+              </svg>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-pink-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
               )}
-            </div>
+            </button>
 
-            {/* Navigation */}
-            <nav className="hidden md:flex space-x-8">
-              <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Home</a>
-              <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Categories</a>
-              <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">New Arrivals</a>
-              <a href="#" className="text-gray-700 hover:text-purple-600 px-3 py-2 rounded-md text-sm font-medium">Sale</a>
-            </nav>
-
-            {/* User actions */}
-            <div className="flex items-center space-x-4">
-              {/* Wishlist */}
-              <button className="p-2 text-gray-600 hover:text-purple-600">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </button>
-
-              {/* Cart */}
-              <button onClick={handleCartClick} className="p-2 text-gray-600 hover:text-purple-600 relative">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 2.5M7 13l2.5 2.5m6 0L19 12M17 21a2 2 0 100-4 2 2 0 000 4zm-8 0a2 2 0 100-4 2 2 0 000 4z" />
-                </svg>
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-
-              {/* User account */}
-              {user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="flex items-center space-x-2 text-gray-700 hover:text-purple-600"
-                  >
-                    <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">{user.name.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <span className="hidden md:block">{user.name}</span>
-                  </button>
-                  
-                  {isMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                      <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                      <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Orders</a>
-                      {user.is_admin && (
-                        <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Admin Panel</a>
-                      )}
-                      <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        Sign out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button 
-                  onClick={() => setIsLoginModalOpen(true)}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-purple-700"
-                >
-                  Sign In
-                </button>
-              )}
-            </div>
+            {/* Mobile menu button */}
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2 text-gray-600 hover:text-pink-600"
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
         </div>
-      </header>
-      
-      {/* Cart Modal */}
-      {showCart && (
-        <PaymentModal 
-          isOpen={showCart} 
-          onClose={() => setShowCart(false)} 
-          cartItems={cartItems}
-          totalAmount={cartItems.reduce((total, item) => total + (item.product?.price || 0) * item.quantity, 0)}
-        />
-      )}
-    </>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-200">
+            <a href="#home" className="block px-3 py-2 text-gray-700 hover:text-pink-600">Home</a>
+            <a href="#collections" className="block px-3 py-2 text-gray-700 hover:text-pink-600">Collections</a>
+            <a href="#sarees" className="block px-3 py-2 text-gray-700 hover:text-pink-600">Sarees</a>
+            <a href="#lehengas" className="block px-3 py-2 text-gray-700 hover:text-pink-600">Lehengas</a>
+            <a href="#kurtis" className="block px-3 py-2 text-gray-700 hover:text-pink-600">Kurtis</a>
+            <a href="#jewelry" className="block px-3 py-2 text-gray-700 hover:text-pink-600">Jewelry</a>
+          </div>
+        )}
+      </div>
+    </header>
   );
 };
 
-const Hero = () => {
+const HeroCarousel = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  const slides = [
+    {
+      id: 1,
+      image: "https://images.unsplash.com/photo-1571587289339-cb7da03fb5a6",
+      title: "Exquisite Designer Sarees",
+      subtitle: "Handcrafted elegance from across India",
+      cta: "Shop Sarees"
+    },
+    {
+      id: 2,
+      image: "https://images.pexels.com/photos/1139450/pexels-photo-1139450.jpeg",
+      title: "Royal Lehengas",
+      subtitle: "Perfect for your special occasions",
+      cta: "Shop Lehengas"
+    },
+    {
+      id: 3,
+      image: "https://images.unsplash.com/photo-1642956369651-ccc858c72de7",
+      title: "Contemporary Kurtis",
+      subtitle: "Modern comfort meets traditional style",
+      cta: "Shop Kurtis"
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
   return (
-    <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
-              Discover Your
-              <span className="block text-pink-200">Perfect Style</span>
-            </h1>
-            <p className="text-xl mb-8 text-purple-100">
-              Explore our curated collection of premium women's fashion. From ethnic elegance to modern chic.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors">
-                Shop Now
+    <div className="relative h-[60vh] md:h-[70vh] overflow-hidden">
+      {slides.map((slide, index) => (
+        <div
+          key={slide.id}
+          className={`absolute inset-0 transition-opacity duration-1000 ${
+            index === currentSlide ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <img 
+            src={slide.image} 
+            alt={slide.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+            <div className="text-center text-white px-4">
+              <h1 className="text-4xl md:text-6xl font-bold mb-4">{slide.title}</h1>
+              <p className="text-xl md:text-2xl mb-8">{slide.subtitle}</p>
+              <button className="bg-pink-600 hover:bg-pink-700 text-white px-8 py-3 rounded-full text-lg font-semibold transition-colors">
+                {slide.cta}
               </button>
-              <button className="border-2 border-white text-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-purple-600 transition-colors">
-                View Collection
-              </button>
-            </div>
-          </div>
-          <div className="relative">
-            <img
-              src="https://images.unsplash.com/photo-1571908599407-cdb918ed83bf"
-              alt="Fashion Model"
-              className="rounded-lg shadow-2xl"
-            />
-            <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-lg shadow-lg">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">50+</div>
-                <div className="text-sm text-gray-600">New Arrivals</div>
-              </div>
             </div>
           </div>
         </div>
+      ))}
+      
+      {/* Carousel indicators */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+        {slides.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentSlide(index)}
+            className={`w-3 h-3 rounded-full transition-colors ${
+              index === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50'
+            }`}
+          />
+        ))}
       </div>
     </div>
   );
 };
 
-const Categories = () => {
-  const [categories, setCategories] = useState([]);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await api.getCategories();
-        setCategories(data);
-      } catch (error) {
-        console.error('Failed to fetch categories:', error);
-      }
-    };
-    fetchCategories();
-  }, []);
-
-  const categoryImages = [
-    "https://images.unsplash.com/photo-1668371679302-a8ec781e876e",
-    "https://images.pexels.com/photos/32532672/pexels-photo-32532672.jpeg",
-    "https://images.pexels.com/photos/29368868/pexels-photo-29368868.jpeg",
-    "https://images.unsplash.com/photo-1708534246055-d7b149acb731"
+const Collections = () => {
+  const collections = [
+    {
+      id: 1,
+      name: "Designer Sarees",
+      description: "Handwoven silk and cotton sarees",
+      image: "https://images.unsplash.com/photo-1609748340041-f5d61e061ebc",
+      count: "500+ Designs"
+    },
+    {
+      id: 2,
+      name: "Royal Lehengas",
+      description: "Bridal and party wear lehengas",
+      image: "https://images.unsplash.com/photo-1668371679302-a8ec781e876e",
+      count: "300+ Designs"
+    },
+    {
+      id: 3,
+      name: "Designer Kurtis",
+      description: "Contemporary and traditional kurtis",
+      image: "https://images.pexels.com/photos/1999895/pexels-photo-1999895.jpeg",
+      count: "200+ Designs"
+    },
+    {
+      id: 4,
+      name: "Premium Jewelry",
+      description: "Traditional and modern jewelry pieces",
+      image: "https://images.unsplash.com/photo-1671642883395-0ab89c3ac890",
+      count: "150+ Pieces"
+    }
   ];
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section id="collections" className="py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Shop by Category</h2>
-          <p className="text-xl text-gray-600">Find your perfect style in our curated collections</p>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">Our Collections</h2>
+          <p className="text-xl text-gray-600">Discover handcrafted elegance from artisans across India</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {categories.map((category, index) => (
-            <div key={category.id} className="group cursor-pointer">
+          {collections.map((collection) => (
+            <div key={collection.id} className="group cursor-pointer">
               <div className="relative overflow-hidden rounded-lg bg-white shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                 <img
-                  src={categoryImages[index % categoryImages.length]}
-                  alt={category.name}
+                  src={collection.image}
+                  alt={collection.name}
                   className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-30 transition-all duration-300"></div>
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <h3 className="text-xl font-semibold text-white mb-2">{category.name}</h3>
-                  <p className="text-gray-200 text-sm">{category.description}</p>
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h3 className="text-xl font-semibold mb-2">{collection.name}</h3>
+                  <p className="text-gray-200 text-sm mb-2">{collection.description}</p>
+                  <p className="text-pink-300 font-medium">{collection.count}</p>
                 </div>
               </div>
             </div>
@@ -618,48 +313,47 @@ const Categories = () => {
 const FeaturedProducts = () => {
   const [products, setProducts] = useState([]);
   const { addToCart } = useCart();
-  const { user } = useAuth();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const data = await api.getProducts({ featured: true });
-        setProducts(data.slice(0, 8)); // Show only 8 featured products
+        setProducts(data.slice(0, 8));
       } catch (error) {
         console.error('Failed to fetch products:', error);
         // Set sample products for demo
         setProducts([
           {
             id: '1',
-            name: 'Elegant Ethnic Kurti',
-            price: 1299,
-            original_price: 1599,
-            images: ['https://images.unsplash.com/photo-1571908599407-cdb918ed83bf'],
-            category: 'Ethnic Wear'
+            name: 'Silk Designer Saree',
+            price: 2499,
+            original_price: 2999,
+            images: ['https://images.unsplash.com/photo-1609748340041-f5d61e061ebc'],
+            category: 'Designer Sarees'
           },
           {
             id: '2',
-            name: 'Designer Festive Dress',
-            price: 2499,
-            original_price: 2999,
+            name: 'Royal Wedding Lehenga',
+            price: 8999,
+            original_price: 10999,
             images: ['https://images.unsplash.com/photo-1668371679302-a8ec781e876e'],
-            category: 'Festive Wear'
+            category: 'Royal Lehengas'
           },
           {
             id: '3',
-            name: 'Traditional Bridal Wear',
-            price: 4999,
-            original_price: 5999,
-            images: ['https://images.pexels.com/photos/29368868/pexels-photo-29368868.jpeg'],
-            category: 'Festive Wear'
+            name: 'Contemporary Kurti',
+            price: 1299,
+            original_price: 1599,
+            images: ['https://images.pexels.com/photos/1999895/pexels-photo-1999895.jpeg'],
+            category: 'Designer Kurtis'
           },
           {
             id: '4',
-            name: 'Casual Pink Kurta',
+            name: 'Traditional Earrings',
             price: 899,
             original_price: 1199,
-            images: ['https://images.pexels.com/photos/32532672/pexels-photo-32532672.jpeg'],
-            category: 'Casual Wear'
+            images: ['https://images.unsplash.com/photo-1671642883395-0ab89c3ac890'],
+            category: 'Premium Jewelry'
           }
         ]);
       }
@@ -667,22 +361,15 @@ const FeaturedProducts = () => {
     fetchProducts();
   }, []);
 
-  const handleAddToCart = async (product) => {
-    if (!user) {
-      alert('Please login to add items to cart');
-      return;
-    }
-
-    try {
-      await addToCart({
-        product_id: product.id,
-        quantity: 1
-      });
-      alert('Product added to cart!');
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
-      alert('Failed to add to cart');
-    }
+  const handleAddToCart = (product) => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images[0],
+      quantity: 1
+    });
+    alert('Product added to cart!');
   };
 
   return (
@@ -708,13 +395,6 @@ const FeaturedProducts = () => {
                       {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
                     </div>
                   )}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <button className="bg-white p-2 rounded-full shadow-md hover:bg-gray-50">
-                      <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    </button>
-                  </div>
                 </div>
                 
                 <div className="p-4">
@@ -727,24 +407,19 @@ const FeaturedProducts = () => {
                         <span className="text-sm text-gray-500 line-through">₹{product.original_price}</span>
                       )}
                     </div>
-                    <div className="flex items-center">
-                      <div className="flex text-yellow-400">
-                        {[...Array(5)].map((_, i) => (
-                          <svg key={i} className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        ))}
-                      </div>
-                      <span className="text-sm text-gray-500 ml-1">(4.5)</span>
-                    </div>
                   </div>
                   
-                  <button
-                    onClick={() => handleAddToCart(product)}
-                    className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors duration-200 font-medium"
-                  >
-                    Add to Cart
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAddToCart(product)}
+                      className="flex-1 bg-pink-600 text-white py-2 px-4 rounded-md hover:bg-pink-700 transition-colors duration-200 font-medium text-sm"
+                    >
+                      Add to Cart
+                    </button>
+                    <button className="bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors duration-200 font-medium text-sm">
+                      Buy Now
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -752,7 +427,7 @@ const FeaturedProducts = () => {
         </div>
         
         <div className="text-center mt-12">
-          <button className="bg-purple-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-purple-700 transition-colors">
+          <button className="bg-pink-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-pink-700 transition-colors">
             View All Products
           </button>
         </div>
@@ -761,41 +436,104 @@ const FeaturedProducts = () => {
   );
 };
 
-const Newsletter = () => {
-  const [email, setEmail] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (email) {
-      alert('Thank you for subscribing!');
-      setEmail('');
-    }
-  };
-
+const AboutSection = () => {
   return (
-    <section className="py-16 bg-gradient-to-r from-purple-600 to-pink-600">
+    <section className="py-16 bg-gradient-to-r from-pink-50 to-purple-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-6">Crafted with Love, Delivered with Care</h2>
+            <p className="text-lg text-gray-600 mb-6">
+              At Undhyu, we believe in preserving the rich heritage of Indian craftsmanship. Each piece in our collection 
+              is carefully curated from skilled artisans across the country, bringing you authentic designs that tell a story 
+              of tradition and elegance.
+            </p>
+            <p className="text-lg text-gray-600 mb-8">
+              From the silk weavers of Banaras to the embroidery artists of Lucknow, we work directly with craftspeople 
+              to ensure fair trade and premium quality. Every saree, lehenga, kurti, and jewelry piece is a testament 
+              to their artistry and our commitment to excellence.
+            </p>
+            <div className="grid grid-cols-3 gap-6 text-center">
+              <div>
+                <div className="text-3xl font-bold text-pink-600 mb-2">500+</div>
+                <div className="text-sm text-gray-600">Artisan Partners</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-pink-600 mb-2">50,000+</div>
+                <div className="text-sm text-gray-600">Happy Customers</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-pink-600 mb-2">25+</div>
+                <div className="text-sm text-gray-600">States Covered</div>
+              </div>
+            </div>
+          </div>
+          <div className="relative">
+            <img 
+              src="https://images.unsplash.com/flagged/photo-1570055349452-29232699cc63" 
+              alt="Traditional craftsmanship"
+              className="rounded-lg shadow-lg"
+            />
+            <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-lg shadow-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">100%</div>
+                <div className="text-sm text-gray-600">Authentic Products</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const SellWithUs = () => {
+  return (
+    <section className="py-16 bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 className="text-4xl font-bold text-white mb-4">Stay in Style</h2>
-        <p className="text-xl text-purple-100 mb-8">
-          Subscribe to get special offers, free giveaways, and latest fashion updates
+        <h2 className="text-4xl font-bold mb-4">Partner With Us</h2>
+        <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+          Are you an artisan or designer creating beautiful Indian fashion? Join our platform and reach customers worldwide. 
+          We provide the platform, you bring the artistry.
         </p>
-        
-        <form onSubmit={handleSubmit} className="max-w-md mx-auto flex gap-4">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            className="flex-1 px-4 py-3 rounded-full border border-purple-300 focus:outline-none focus:ring-2 focus:ring-white"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition-colors"
-          >
-            Subscribe
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="text-center">
+            <div className="bg-pink-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Competitive Commissions</h3>
+            <p className="text-gray-300">Earn attractive margins on every sale with our fair pricing structure.</p>
+          </div>
+          <div className="text-center">
+            <div className="bg-pink-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Pan-India Reach</h3>
+            <p className="text-gray-300">Access customers across India with our established logistics network.</p>
+          </div>
+          <div className="text-center">
+            <div className="bg-pink-600 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Marketing Support</h3>
+            <p className="text-gray-300">Benefit from our marketing campaigns and brand presence.</p>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <button className="bg-pink-600 hover:bg-pink-700 text-white px-8 py-3 rounded-full font-semibold transition-colors">
+            Apply to Sell
           </button>
-        </form>
+          <button className="border-2 border-white text-white hover:bg-white hover:text-gray-900 px-8 py-3 rounded-full font-semibold transition-colors">
+            Learn More
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -809,22 +547,12 @@ const Footer = () => {
           <div>
             <h3 className="text-2xl font-bold mb-4">Undhyu</h3>
             <p className="text-gray-400 mb-4">
-              Your destination for premium women's fashion. Quality, style, and elegance in every piece.
+              Bringing you authentic Indian fashion crafted by skilled artisans from across the country.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-white">
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white">
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/>
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white">
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.097.118.112.22.083.339-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.748-1.378 0 0-.599 2.282-.744 2.840-.282 1.084-1.064 2.456-1.549 3.235C9.584 23.815 10.77 24.001 12.017 24.001c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001 12.017.001z"/>
                 </svg>
               </a>
               <a href="#" className="text-gray-400 hover:text-white">
@@ -836,34 +564,42 @@ const Footer = () => {
           </div>
           
           <div>
-            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
+            <h4 className="text-lg font-semibold mb-4">Collections</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white">About Us</a></li>
-              <li><a href="#" className="hover:text-white">Collections</a></li>
+              <li><a href="#" className="hover:text-white">Designer Sarees</a></li>
+              <li><a href="#" className="hover:text-white">Royal Lehengas</a></li>
+              <li><a href="#" className="hover:text-white">Designer Kurtis</a></li>
+              <li><a href="#" className="hover:text-white">Premium Jewelry</a></li>
               <li><a href="#" className="hover:text-white">New Arrivals</a></li>
-              <li><a href="#" className="hover:text-white">Sale</a></li>
-              <li><a href="#" className="hover:text-white">Size Guide</a></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="text-lg font-semibold mb-4">Customer Service</h4>
+            <h4 className="text-lg font-semibold mb-4">Customer Care</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white">Contact Us</a></li>
+              <li><a href="#" className="hover:text-white">Size Guide</a></li>
               <li><a href="#" className="hover:text-white">Shipping Info</a></li>
-              <li><a href="#" className="hover:text-white">Returns & Exchanges</a></li>
+              <li><a href="#" className="hover:text-white">Returns & Exchange</a></li>
               <li><a href="#" className="hover:text-white">Track Your Order</a></li>
-              <li><a href="#" className="hover:text-white">FAQ</a></li>
+              <li><a href="#" className="hover:text-white">Care Instructions</a></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="text-lg font-semibold mb-4">Contact Info</h4>
-            <div className="space-y-2 text-gray-400">
-              <p>📧 support@undhyu.com</p>
-              <p>📞 +91 98765 43210</p>
-              <p>📍 Fashion Street, Mumbai, India</p>
-              <p>🕐 Mon-Sat: 10AM-8PM</p>
+            <h4 className="text-lg font-semibold mb-4">Need Help?</h4>
+            <div className="space-y-3">
+              <div>
+                <p className="text-gray-400 text-sm mb-2">Call us</p>
+                <p className="text-white font-medium">+91 98765 43210</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm mb-2">Email us</p>
+                <p className="text-white font-medium">help@undhyu.com</p>
+              </div>
+              <div className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-center cursor-pointer transition-colors">
+                <p className="font-semibold">Write to Us</p>
+                <p className="text-sm">We're here to help!</p>
+              </div>
             </div>
           </div>
         </div>
@@ -876,112 +612,230 @@ const Footer = () => {
   );
 };
 
-// Login Modal Component
-const LoginModal = ({ isOpen, onClose }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: '',
-    phone: ''
-  });
-  const { login } = useAuth();
+const CartModal = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem }) => {
+  const { cartCount } = useCart();
+  const [showCheckout, setShowCheckout] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (isLogin) {
-        const result = await api.login(formData.email, formData.password);
-        if (result.token) {
-          login(result.user, result.token);
-          onClose();
-        } else {
-          alert(result.detail || 'Login failed');
-        }
-      } else {
-        const result = await api.register(formData);
-        if (result.token) {
-          login(result.user, result.token);
-          onClose();
-        } else {
-          alert(result.detail || 'Registration failed');
-        }
-      }
-    } catch (error) {
-      console.error('Auth error:', error);
-      alert('Authentication failed');
-    }
-  };
+  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   if (!isOpen) return null;
 
+  if (showCheckout) {
+    return <CheckoutModal cartItems={cartItems} total={total} onClose={() => { onClose(); setShowCheckout(false); }} />;
+  }
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 w-full max-w-md relative">
-        <h2 className="text-2xl font-bold mb-6">{isLogin ? 'Sign In' : 'Create Account'}</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <>
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                required
-              />
-              <input
-                type="tel"
-                placeholder="Phone Number"
-                value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              />
-            </>
-          )}
-          
-          <input
-            type="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={(e) => setFormData({...formData, email: e.target.value})}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-            required
-          />
-          
-          <input
-            type="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={(e) => setFormData({...formData, password: e.target.value})}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-            required
-          />
-          
-          <button
-            type="submit"
-            className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
-          >
-            {isLogin ? 'Sign In' : 'Create Account'}
-          </button>
-        </form>
-        
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-purple-600 hover:underline"
-          >
-            {isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Shopping Cart ({cartCount})</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
         
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-        >
-          ✕
-        </button>
+        <div className="p-6">
+          {cartItems.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">Your cart is empty</p>
+              <button 
+                onClick={onClose}
+                className="bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700"
+              >
+                Continue Shopping
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4 mb-6">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex items-center space-x-4 border-b pb-4">
+                    <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{item.name}</h3>
+                      <p className="text-gray-600">₹{item.price}</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                        className="bg-gray-200 px-2 py-1 rounded"
+                      >
+                        -
+                      </button>
+                      <span className="px-3">{item.quantity}</span>
+                      <button 
+                        onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                        className="bg-gray-200 px-2 py-1 rounded"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => onRemoveItem(item.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-xl font-bold">Total: ₹{total.toFixed(2)}</span>
+                </div>
+                <button 
+                  onClick={() => setShowCheckout(true)}
+                  className="w-full bg-pink-600 text-white py-3 rounded-lg hover:bg-pink-700 font-semibold"
+                >
+                  Proceed to Checkout
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CheckoutModal = ({ cartItems, total, onClose }) => {
+  const [customerDetails, setCustomerDetails] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    
+    try {
+      // Create guest order
+      const orderData = {
+        customer_details: customerDetails,
+        items: cartItems,
+        total_amount: total,
+        payment_method: 'razorpay'
+      };
+      
+      const result = await api.createGuestOrder(orderData);
+      alert('Order placed successfully! You will receive a confirmation email.');
+      onClose();
+    } catch (error) {
+      console.error('Order creation failed:', error);
+      alert('Failed to place order. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Checkout</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Customer Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <input
+              type="text"
+              placeholder="Full Name *"
+              value={customerDetails.name}
+              onChange={(e) => setCustomerDetails({...customerDetails, name: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email *"
+              value={customerDetails.email}
+              onChange={(e) => setCustomerDetails({...customerDetails, email: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+              required
+            />
+            <input
+              type="tel"
+              placeholder="Phone Number *"
+              value={customerDetails.phone}
+              onChange={(e) => setCustomerDetails({...customerDetails, phone: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Pincode *"
+              value={customerDetails.pincode}
+              onChange={(e) => setCustomerDetails({...customerDetails, pincode: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Address *"
+              value={customerDetails.address}
+              onChange={(e) => setCustomerDetails({...customerDetails, address: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 md:col-span-2"
+              required
+            />
+            <input
+              type="text"
+              placeholder="City"
+              value={customerDetails.city}
+              onChange={(e) => setCustomerDetails({...customerDetails, city: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+            />
+            <input
+              type="text"
+              placeholder="State"
+              value={customerDetails.state}
+              onChange={(e) => setCustomerDetails({...customerDetails, state: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
+            />
+          </div>
+
+          <div className="border-t pt-4 mb-6">
+            <h3 className="text-lg font-semibold mb-2">Order Summary</h3>
+            <div className="space-y-2">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex justify-between">
+                  <span>{item.name} x {item.quantity}</span>
+                  <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="border-t pt-2 font-bold flex justify-between">
+                <span>Total</span>
+                <span>₹{total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isProcessing}
+            className="w-full bg-pink-600 text-white py-3 rounded-lg hover:bg-pink-700 disabled:opacity-50 font-semibold"
+          >
+            {isProcessing ? 'Processing...' : 'Place Order'}
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -989,81 +843,70 @@ const LoginModal = ({ isOpen, onClose }) => {
 
 // Main App Component
 const App = () => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
   const [cartItems, setCartItems] = useState([]);
   const [cartCount, setCartCount] = useState(0);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [showCart, setShowCart] = useState(false);
 
   useEffect(() => {
-    // Check for existing session
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+    setCartCount(cartItems.reduce((total, item) => total + item.quantity, 0));
+  }, [cartItems]);
 
-  useEffect(() => {
-    if (user && token) {
-      fetchCart();
-    }
-  }, [user, token]);
+  const addToCart = (product) => {
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevItems.map(item =>
+          item.id === product.id 
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        return [...prevItems, { ...product, quantity: 1 }];
+      }
+    });
+  };
 
-  const fetchCart = async () => {
-    try {
-      const cart = await api.getCart(token);
-      setCartItems(cart);
-      setCartCount(cart.reduce((total, item) => total + item.quantity, 0));
-    } catch (error) {
-      console.error('Failed to fetch cart:', error);
+  const updateQuantity = (productId, newQuantity) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId);
+    } else {
+      setCartItems(prevItems =>
+        prevItems.map(item =>
+          item.id === productId ? { ...item, quantity: newQuantity } : item
+        )
+      );
     }
   };
 
-  const login = (userData, userToken) => {
-    setUser(userData);
-    setToken(userToken);
-    localStorage.setItem('token', userToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const removeFromCart = (productId) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    setCartItems([]);
-    setCartCount(0);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  };
-
-  const addToCartHandler = async (cartItem) => {
-    try {
-      await api.addToCart(cartItem, token);
-      await fetchCart();
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
-      throw error;
-    }
+  const toggleCart = () => {
+    setShowCart(!showCart);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      <CartContext.Provider value={{ cartItems, cartCount, addToCart: addToCartHandler }}>
-        <div className="min-h-screen bg-gray-50">
-          <Header />
-          <main>
-            <Hero />
-            <Categories />
-            <FeaturedProducts />
-            <Newsletter />
-          </main>
-          <Footer />
-          <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
-        </div>
-      </CartContext.Provider>
-    </AuthContext.Provider>
+    <CartContext.Provider value={{ cartItems, cartCount, addToCart, updateQuantity, removeFromCart, toggleCart }}>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <main>
+          <HeroCarousel />
+          <Collections />
+          <FeaturedProducts />
+          <AboutSection />
+          <SellWithUs />
+        </main>
+        <Footer />
+        <CartModal 
+          isOpen={showCart} 
+          onClose={() => setShowCart(false)} 
+          cartItems={cartItems}
+          onUpdateQuantity={updateQuantity}
+          onRemoveItem={removeFromCart}
+        />
+      </div>
+    </CartContext.Provider>
   );
 };
 

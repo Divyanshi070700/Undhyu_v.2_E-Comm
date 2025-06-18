@@ -44,6 +44,22 @@ body {
   animation: fadeInUp 0.6s ease-out;
 }
 
+/* Carousel animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.carousel-slide {
+  animation: slideIn 0.8s ease-out;
+}
+
 /* Button animations */
 .btn-hover {
   transition: all 0.3s ease;
@@ -76,28 +92,39 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #c084fc;
+  background: #ec4899;
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #a855f7;
+  background: #db2777;
 }
 
-/* Hero section gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* Hero section gradient overlay */
+.hero-overlay {
+  background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.6) 100%);
 }
 
-/* Custom focus styles */
-.focus-ring:focus {
-  outline: none;
-  ring: 2px;
-  ring-color: rgb(168 85 247);
-  ring-offset: 2px;
+/* Collection card hover effects */
+.collection-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.collection-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(236, 72, 153, 0.1), rgba(147, 51, 234, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.collection-card:hover::before {
+  opacity: 1;
 }
 
 /* Loading spinner */
@@ -105,7 +132,7 @@ body {
   width: 20px;
   height: 20px;
   border: 2px solid #f3f3f3;
-  border-top: 2px solid #9333ea;
+  border-top: 2px solid #ec4899;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -113,28 +140,6 @@ body {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-/* Category hover effects */
-.category-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.category-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, rgba(147, 51, 234, 0.1), rgba(236, 72, 153, 0.1));
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.category-card:hover::before {
-  opacity: 1;
 }
 
 /* Badge styles */
@@ -189,7 +194,7 @@ body {
 
 /* Newsletter section styles */
 .newsletter-bg {
-  background-image: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background-image: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #f97316 100%);
 }
 
 /* Footer styles */
@@ -198,7 +203,7 @@ body {
 }
 
 .footer-link:hover {
-  color: rgb(168 85 247);
+  color: rgb(236, 72, 153);
 }
 
 /* Form styles */
@@ -207,8 +212,8 @@ body {
 }
 
 .form-input:focus {
-  border-color: rgb(168 85 247);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+  border-color: rgb(236, 72, 153);
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
 }
 
 /* Rating stars */
@@ -318,37 +323,37 @@ body {
 }
 
 .btn-primary {
-  background-color: rgb(147 51 234);
+  background-color: rgb(236, 72, 153);
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: rgb(126 34 206);
+  background-color: rgb(219, 39, 119);
 }
 
 .btn-secondary {
-  background-color: rgb(107 114 128);
+  background-color: rgb(107, 114, 128);
   color: white;
 }
 
 .btn-secondary:hover {
-  background-color: rgb(75 85 99);
+  background-color: rgb(75, 85, 99);
 }
 
 .btn-outline {
   background-color: transparent;
-  border: 1px solid rgb(147 51 234);
-  color: rgb(147 51 234);
+  border: 1px solid rgb(236, 72, 153);
+  color: rgb(236, 72, 153);
 }
 
 .btn-outline:hover {
-  background-color: rgb(147 51 234);
+  background-color: rgb(236, 72, 153);
   color: white;
 }
 
 /* Typography */
 .text-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -381,4 +386,61 @@ body {
 
 .grid-auto-fill {
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+/* Hero carousel specific styles */
+.hero-carousel {
+  position: relative;
+  height: 70vh;
+  overflow: hidden;
+}
+
+.hero-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 1s ease-in-out;
+}
+
+/* Collection grid styles */
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+/* Product grid styles */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+.focus-visible {
+  outline: 2px solid rgb(236, 72, 153);
+  outline-offset: 2px;
+}
+
+/* Custom pink theme colors */
+:root {
+  --pink-50: #fdf2f8;
+  --pink-100: #fce7f3;
+  --pink-200: #fbcfe8;
+  --pink-300: #f9a8d4;
+  --pink-400: #f472b6;
+  --pink-500: #ec4899;
+  --pink-600: #db2777;
+  --pink-700: #be185d;
+  --pink-800: #9d174d;
+  --pink-900: #831843;
 }
