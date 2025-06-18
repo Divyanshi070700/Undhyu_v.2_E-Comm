@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Test - Undhyu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold mb-6">Admin Portal Test</h1>
+        
+        <!-- Login Test -->
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold mb-4">1. Test Admin Login</h2>
+            <button id="testLogin" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                Test Login API
+            </button>
+            <div id="loginResult" class="mt-2 p-2 bg-gray-50 rounded text-sm"></div>
+        </div>
+
+        <!-- Product Creation Test -->
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold mb-4">2. Test Product Creation</h2>
+            <button id="testProduct" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" disabled>
+                Test Add Product
+            </button>
+            <div id="productResult" class="mt-2 p-2 bg-gray-50 rounded text-sm"></div>
+        </div>
+
+        <!-- Product List Test -->
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold mb-4">3. Test Product List</h2>
+            <button id="testList" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                Get Products
+            </button>
+            <div id="listResult" class="mt-2 p-2 bg-gray-50 rounded text-sm"></div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="bg-yellow-50 border border-yellow-200 p-4 rounded">
+            <h3 class="font-semibold text-yellow-800">Instructions:</h3>
+            <ol class="list-decimal list-inside text-sm text-yellow-700 mt-2">
+                <li>First, test admin login</li>
+                <li>If login succeeds, test product creation</li>
+                <li>Check if products appear in the list</li>
+                <li>Open browser console for detailed logs</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://54a1d159-397c-45f6-b43d-7c17eb879b5c.preview.emergentagent.com';
+        let adminToken = null;
+
+        // Test Login
+        document.getElementById('testLogin').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = 'Testing login...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@undhyu.com',
+                        password: 'admin123'
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.token) {
+                    adminToken = result.token;
+                    resultDiv.innerHTML = `✅ Login Success! Token: ${result.token.substring(0, 20)}...`;
+                    resultDiv.className = 'mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm';
+                    document.getElementById('testProduct').disabled = false;
+                } else {
+                    resultDiv.innerHTML = `❌ Login Failed: ${JSON.stringify(result)}`;
+                    resultDiv.className = 'mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                resultDiv.className = 'mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm';
+            }
+        });
+
+        // Test Product Creation
+        document.getElementById('testProduct').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('productResult');
+            resultDiv.innerHTML = 'Testing product creation...';
+
+            try {
+                const productData = {
+                    name: 'Test Product ' + Date.now(),
+                    description: 'This is a test product',
+                    price: 1500,
+                    original_price: 2000,
+                    category: 'Designer Sarees',
+                    sizes: ['S', 'M', 'L'],
+                    colors: ['Red', 'Blue'],
+                    material: 'Silk',
+                    origin: 'Test Origin',
+                    stock: 10,
+                    images: ['https://images.unsplash.com/photo-1609748340041-f5d61e061ebc'],
+                    is_featured: true
+                };
+
+                const response = await fetch(`${API_BASE}/api/products`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify(productData)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `✅ Product Created! ID: ${result.product_id}`;
+                    resultDiv.className = 'mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm';
+                } else {
+                    resultDiv.innerHTML = `❌ Product Creation Failed: ${JSON.stringify(result)}`;
+                    resultDiv.className = 'mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                resultDiv.className = 'mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm';
+            }
+        });
+
+        // Test Product List
+        document.getElementById('testList').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('listResult');
+            resultDiv.innerHTML = 'Getting products...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/products`);
+                const products = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `✅ Found ${products.length} products. Latest: ${products.length > 0 ? products[products.length-1].name : 'None'}`;
+                    resultDiv.className = 'mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm';
+                } else {
+                    resultDiv.innerHTML = `❌ Failed to get products: ${JSON.stringify(products)}`;
+                    resultDiv.className = 'mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                resultDiv.className = 'mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm';
+            }
+        });
+    </script>
+</body>
+</html>
