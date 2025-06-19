@@ -336,174 +336,288 @@ const HomePage = () => {
   );
 };
 
-// Products Page with Filters
+// Products Page with Modern UI
 const ProductsPage = () => {
   const [products, setProducts] = useState([]);
   const [filters, setFilters] = useState({
     category: '',
-    minPrice: '',
-    maxPrice: '',
+    minPrice: 0,
+    maxPrice: 10000,
     occasion: '',
     material: ''
   });
+  const [priceRange, setPriceRange] = useState([0, 10000]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { addToCart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const sampleProducts = [
-    { id: '1', name: 'Silk Designer Saree', price: 2499, original_price: 2999, images: ['https://images.unsplash.com/photo-1609748340041-f5d61e061ebc'], category: 'sarees', occasion: 'wedding', material: 'silk' },
-    { id: '2', name: 'Royal Wedding Lehenga', price: 8999, original_price: 10999, images: ['https://images.unsplash.com/photo-1668371679302-a8ec781e876e'], category: 'lehengas', occasion: 'wedding', material: 'silk' },
-    { id: '3', name: 'Contemporary Kurti', price: 1299, original_price: 1599, images: ['https://images.pexels.com/photos/1999895/pexels-photo-1999895.jpeg'], category: 'kurtis', occasion: 'casual', material: 'cotton' },
-    { id: '4', name: 'Traditional Earrings', price: 899, original_price: 1199, images: ['https://images.unsplash.com/photo-1671642883395-0ab89c3ac890'], category: 'jewelry', occasion: 'party', material: 'gold' },
-    { id: '5', name: 'Casual Cotton Kurti', price: 799, original_price: 999, images: ['https://images.pexels.com/photos/1999895/pexels-photo-1999895.jpeg'], category: 'kurtis', occasion: 'casual', material: 'cotton' },
-    { id: '6', name: 'Party Wear Lehenga', price: 6999, original_price: 8999, images: ['https://images.unsplash.com/photo-1668371679302-a8ec781e876e'], category: 'lehengas', occasion: 'party', material: 'georgette' }
+    { id: '1', name: 'Elegant Silk Saree', price: 2499, original_price: 2999, images: ['https://images.unsplash.com/photo-1609748340041-f5d61e061ebc'], category: 'sarees', occasion: 'wedding', material: 'silk' },
+    { id: '2', name: 'Royal Bridal Lehenga', price: 8999, original_price: 10999, images: ['https://images.unsplash.com/photo-1668371679302-a8ec781e876e'], category: 'lehengas', occasion: 'wedding', material: 'silk' },
+    { id: '3', name: 'Designer Cotton Kurti', price: 1299, original_price: 1599, images: ['https://images.pexels.com/photos/1999895/pexels-photo-1999895.jpeg'], category: 'kurtis', occasion: 'casual', material: 'cotton' },
+    { id: '4', name: 'Gold Traditional Earrings', price: 899, original_price: 1199, images: ['https://images.unsplash.com/photo-1671642883395-0ab89c3ac890'], category: 'jewelry', occasion: 'party', material: 'gold' },
+    { id: '5', name: 'Casual Everyday Kurti', price: 799, original_price: 999, images: ['https://images.pexels.com/photos/1999895/pexels-photo-1999895.jpeg'], category: 'kurtis', occasion: 'casual', material: 'cotton' },
+    { id: '6', name: 'Party Wear Georgette Lehenga', price: 6999, original_price: 8999, images: ['https://images.unsplash.com/photo-1668371679302-a8ec781e876e'], category: 'lehengas', occasion: 'party', material: 'georgette' },
+    { id: '7', name: 'Festive Banarasi Saree', price: 3499, original_price: 4299, images: ['https://images.unsplash.com/photo-1609748340041-f5d61e061ebc'], category: 'sarees', occasion: 'festive', material: 'silk' },
+    { id: '8', name: 'Silver Statement Necklace', price: 1599, original_price: 1999, images: ['https://images.unsplash.com/photo-1671642883395-0ab89c3ac890'], category: 'jewelry', occasion: 'party', material: 'silver' }
   ];
 
   useEffect(() => {
     setProducts(sampleProducts);
-  }, []);
+    // Get category from URL params
+    const urlParams = new URLSearchParams(location.search);
+    const category = urlParams.get('category');
+    if (category) {
+      setFilters(prev => ({ ...prev, category }));
+    }
+  }, [location.search]);
 
   const filteredProducts = products.filter(product => {
     return (!filters.category || product.category === filters.category) &&
-           (!filters.minPrice || product.price >= parseInt(filters.minPrice)) &&
-           (!filters.maxPrice || product.price <= parseInt(filters.maxPrice)) &&
+           (product.price >= priceRange[0] && product.price <= priceRange[1]) &&
            (!filters.occasion || product.occasion === filters.occasion) &&
            (!filters.material || product.material === filters.material);
   });
 
+  const handlePriceChange = (event) => {
+    const value = parseInt(event.target.value);
+    setPriceRange([value, priceRange[1]]);
+  };
+
+  const handleMaxPriceChange = (event) => {
+    const value = parseInt(event.target.value);
+    setPriceRange([priceRange[0], value]);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="lg:w-1/4">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-lg font-semibold mb-4">Filters</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                  <select 
-                    value={filters.category} 
-                    onChange={(e) => setFilters({...filters, category: e.target.value})}
-                    className="w-full p-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="">All Categories</option>
-                    <option value="sarees">Sarees</option>
-                    <option value="lehengas">Lehengas</option>
-                    <option value="kurtis">Kurtis</option>
-                    <option value="jewelry">Jewelry</option>
-                  </select>
-                </div>
+      {/* Header Section */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-light text-gray-900 tracking-wide">All Products</h1>
+              <p className="text-gray-600 mt-1">{filteredProducts.length} products found</p>
+            </div>
+            <button 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="lg:hidden flex items-center space-x-2 bg-gray-900 text-white px-4 py-2 rounded-lg"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 2v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+              </svg>
+              <span>Filter</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
-                  <div className="flex gap-2">
-                    <input 
-                      type="number" 
-                      placeholder="Min" 
-                      value={filters.minPrice}
-                      onChange={(e) => setFilters({...filters, minPrice: e.target.value})}
-                      className="w-1/2 p-2 border border-gray-300 rounded-lg" 
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-8">
+          {/* Modern Filter Sidebar */}
+          <div className={`lg:w-80 ${isFilterOpen ? 'block' : 'hidden lg:block'}`}>
+            <div className="bg-white rounded-2xl shadow-sm border p-6 sticky top-24">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-medium text-gray-900">Filters</h3>
+                <button 
+                  onClick={() => {
+                    setFilters({ category: '', minPrice: 0, maxPrice: 10000, occasion: '', material: '' });
+                    setPriceRange([0, 10000]);
+                  }}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Clear all
+                </button>
+              </div>
+              
+              {/* Categories - Radio Buttons */}
+              <div className="mb-8">
+                <h4 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">Category</h4>
+                <div className="space-y-3">
+                  {[
+                    { value: '', label: 'All Categories' },
+                    { value: 'sarees', label: 'Designer Sarees' },
+                    { value: 'lehengas', label: 'Royal Lehengas' },
+                    { value: 'kurtis', label: 'Designer Kurtis' },
+                    { value: 'jewelry', label: 'Premium Jewelry' }
+                  ].map((option) => (
+                    <label key={option.value} className="flex items-center cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="category"
+                        value={option.value}
+                        checked={filters.category === option.value}
+                        onChange={(e) => setFilters({...filters, category: e.target.value})}
+                        className="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+                      />
+                      <span className="ml-3 text-sm text-gray-700 group-hover:text-gray-900">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price Range Slider */}
+              <div className="mb-8">
+                <h4 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">Price Range</h4>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>₹{priceRange[0]}</span>
+                    <span>₹{priceRange[1]}</span>
+                  </div>
+                  
+                  <div className="relative">
+                    <input
+                      type="range"
+                      min="0"
+                      max="10000"
+                      step="100"
+                      value={priceRange[0]}
+                      onChange={handlePriceChange}
+                      className="absolute w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
                     />
-                    <input 
-                      type="number" 
-                      placeholder="Max" 
-                      value={filters.maxPrice}
-                      onChange={(e) => setFilters({...filters, maxPrice: e.target.value})}
-                      className="w-1/2 p-2 border border-gray-300 rounded-lg" 
+                    <input
+                      type="range"
+                      min="0"
+                      max="10000"
+                      step="100"
+                      value={priceRange[1]}
+                      onChange={handleMaxPriceChange}
+                      className="absolute w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 mt-4">
+                    <input
+                      type="number"
+                      value={priceRange[0]}
+                      onChange={(e) => setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])}
+                      className="w-20 px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Min"
+                    />
+                    <span className="text-gray-500">—</span>
+                    <input
+                      type="number"
+                      value={priceRange[1]}
+                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value) || 10000])}
+                      className="w-20 px-2 py-1 text-xs border border-gray-300 rounded"
+                      placeholder="Max"
                     />
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Occasion</label>
-                  <select 
-                    value={filters.occasion} 
-                    onChange={(e) => setFilters({...filters, occasion: e.target.value})}
-                    className="w-full p-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="">All Occasions</option>
-                    <option value="wedding">Wedding</option>
-                    <option value="party">Party</option>
-                    <option value="casual">Casual</option>
-                    <option value="festive">Festive</option>
-                  </select>
+              {/* Occasion Filter */}
+              <div className="mb-8">
+                <h4 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">Occasion</h4>
+                <div className="space-y-3">
+                  {[
+                    { value: '', label: 'All Occasions' },
+                    { value: 'wedding', label: 'Wedding' },
+                    { value: 'party', label: 'Party' },
+                    { value: 'casual', label: 'Casual' },
+                    { value: 'festive', label: 'Festive' }
+                  ].map((option) => (
+                    <label key={option.value} className="flex items-center cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="occasion"
+                        value={option.value}
+                        checked={filters.occasion === option.value}
+                        onChange={(e) => setFilters({...filters, occasion: e.target.value})}
+                        className="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+                      />
+                      <span className="ml-3 text-sm text-gray-700 group-hover:text-gray-900">{option.label}</span>
+                    </label>
+                  ))}
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Material</label>
-                  <select 
-                    value={filters.material} 
-                    onChange={(e) => setFilters({...filters, material: e.target.value})}
-                    className="w-full p-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="">All Materials</option>
-                    <option value="silk">Silk</option>
-                    <option value="cotton">Cotton</option>
-                    <option value="georgette">Georgette</option>
-                    <option value="gold">Gold</option>
-                  </select>
+              {/* Material Filter */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-4 uppercase tracking-wider">Material</h4>
+                <div className="space-y-3">
+                  {[
+                    { value: '', label: 'All Materials' },
+                    { value: 'silk', label: 'Silk' },
+                    { value: 'cotton', label: 'Cotton' },
+                    { value: 'georgette', label: 'Georgette' },
+                    { value: 'gold', label: 'Gold' },
+                    { value: 'silver', label: 'Silver' }
+                  ].map((option) => (
+                    <label key={option.value} className="flex items-center cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="material"
+                        value={option.value}
+                        checked={filters.material === option.value}
+                        onChange={(e) => setFilters({...filters, material: e.target.value})}
+                        className="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900"
+                      />
+                      <span className="ml-3 text-sm text-gray-700 group-hover:text-gray-900">{option.label}</span>
+                    </label>
+                  ))}
                 </div>
-
-                <button 
-                  onClick={() => setFilters({category: '', minPrice: '', maxPrice: '', occasion: '', material: ''})}
-                  className="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600"
-                >
-                  Clear Filters
-                </button>
               </div>
             </div>
           </div>
 
           {/* Products Grid */}
-          <div className="lg:w-3/4">
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900">All Products</h1>
-              <p className="text-gray-600">Showing {filteredProducts.length} products</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative cursor-pointer" onClick={() => navigate(`/product/${product.id}`)}>
-                    <img src={product.images[0]} alt={product.name} className="w-full h-64 object-cover hover:scale-105 transition-transform duration-300" />
-                    {product.original_price > product.price && (
-                      <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">
-                        {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg font-bold text-gray-900">₹{product.price}</span>
+          <div className="flex-1">
+            {filteredProducts.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-5.5a2.5 2.5 0 00-2.5 2.5v0a2.5 2.5 0 00-2.5-2.5H4" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
+                <p className="mt-1 text-sm text-gray-500">Try adjusting your filters</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProducts.map((product) => (
+                  <div key={product.id} className="group bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-lg transition-all duration-300">
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                        onClick={() => navigate(`/product/${product.id}`)}
+                      />
+                      {product.original_price > product.price && (
+                        <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 text-xs font-medium rounded-lg">
+                          {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
+                        </div>
+                      )}
+                      <button className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <svg className="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2 cursor-pointer" onClick={() => navigate(`/product/${product.id}`)}>
+                        {product.name}
+                      </h3>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <span className="text-lg font-semibold text-gray-900">₹{product.price}</span>
                         {product.original_price > product.price && (
                           <span className="text-sm text-gray-500 line-through">₹{product.original_price}</span>
                         )}
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => {
                           addToCart(product);
                           alert('Added to cart!');
                         }}
-                        className="flex-1 bg-pink-600 text-white py-2 px-4 rounded-md hover:bg-pink-700 transition-colors text-sm"
+                        className="w-full bg-gray-900 text-white py-2.5 text-sm font-medium tracking-wide uppercase hover:bg-gray-800 transition-colors duration-200 rounded-lg"
                       >
                         Add to Cart
                       </button>
-                      <button 
-                        onClick={() => navigate(`/product/${product.id}`)}
-                        className="bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors text-sm"
-                      >
-                        View
-                      </button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
