@@ -6,33 +6,355 @@ import './App.css';
 const CartContext = createContext();
 const useCart = () => useContext(CartContext);
 
-// API functions
+// API functions with Shopify integration
 const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const SHOPIFY_DOMAIN = 'j0dktb-z1.myshopify.com';
+const SHOPIFY_STOREFRONT_TOKEN = 'e1b6b8f9e68a12c9ba10eacb3da5c5c0';
+
+// Shopify Storefront API
+const shopifyAPI = {
+  // GraphQL query to get products
+  getProducts: async (first = 20, query = '') => {
+    const graphqlQuery = `
+      query getProducts($first: Int!, $query: String) {
+        products(first: $first, query: $query) {
+          edges {
+            node {
+              id
+              handle
+              title
+              description
+              vendor
+              productType
+              tags
+              priceRange {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+                maxVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
+              compareAtPriceRange {
+                minVariantPrice {
+                  amount
+                  currencyCode
+                }
+                maxVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
+              images(first: 5) {
+                edges {
+                  node {
+                    url
+                    altText
+                  }
+                }
+              }
+              variants(first: 10) {
+                edges {
+                  node {
+                    id
+                    title
+                    price {
+                      amount
+                      currencyCode
+                    }
+                    compareAtPrice {
+                      amount
+                      currencyCode
+                    }
+                    availableForSale
+                    quantityAvailable
+                    selectedOptions {
+                      name
+                      value
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2023-10/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_TOKEN,
+        },
+        body: JSON.stringify({
+          query: graphqlQuery,
+          variables: { first, query }
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.errors) {
+        console.error('Shopify API errors:', data.errors);
+        return [];
+      }
+
+      // Transform Shopify data to match our existing format
+      return data.data.products.edges.map(({ node }) => ({
+        id: node.id,
+        handle: node.handle,
+        name: node.title,
+        description: node.description,
+        vendor: node.vendor,
+        category: node.productType || 'General',
+        tags: node.tags,
+        price: parseFloat(node.priceRange.minVariantPrice.amount),
+        original_price: node.compareAtPriceRange.minVariantPrice ? 
+          parseFloat(node.compareAtPriceRange.minVariantPrice.amount) : null,
+        images: node.images.edges.map(img => img.node.url),
+        variants: node.variants.edges.map(({ node: variant }) => ({
+          id: variant.id,
+          title: variant.title,
+          price: parseFloat(variant.price.amount),
+          compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice.amount) : null,
+          availableForSale: variant.availableForSale,
+          quantityAvailable: variant.quantityAvailable,
+          selectedOptions: variant.selectedOptions
+        })),
+        // Additional fields for filtering
+        occasion: node.tags.find(tag => ['wedding', 'party', 'casual', 'festive'].includes(tag.toLowerCase())) || '',
+        material: node.tags.find(tag => ['silk', 'cotton', 'georgette', 'gold', 'silver'].includes(tag.toLowerCase())) || ''
+      }));
+    } catch (error) {
+      console.error('Error fetching products from Shopify:', error);
+      return [];
+    }
+  },
+
+  // Get single product
+  getProduct: async (handle) => {
+    const graphqlQuery = `
+      query getProduct($handle: String!) {
+        productByHandle(handle: $handle) {
+          id
+          handle
+          title
+          description
+          vendor
+          productType
+          tags
+          priceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          compareAtPriceRange {
+            minVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          images(first: 10) {
+            edges {
+              node {
+                url
+                altText
+              }
+            }
+          }
+          variants(first: 20) {
+            edges {
+              node {
+                id
+                title
+                price {
+                  amount
+                  currencyCode
+                }
+                compareAtPrice {
+                  amount
+                  currencyCode
+                }
+                availableForSale
+                quantityAvailable
+                selectedOptions {
+                  name
+                  value
+                }
+              }
+            }
+          }
+          options {
+            name
+            values
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2023-10/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_TOKEN,
+        },
+        body: JSON.stringify({
+          query: graphqlQuery,
+          variables: { handle }
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.errors || !data.data.productByHandle) {
+        console.error('Product not found or API error');
+        return null;
+      }
+
+      const product = data.data.productByHandle;
+      return {
+        id: product.id,
+        handle: product.handle,
+        name: product.title,
+        description: product.description,
+        vendor: product.vendor,
+        category: product.productType || 'General',
+        tags: product.tags,
+        price: parseFloat(product.priceRange.minVariantPrice.amount),
+        original_price: product.compareAtPriceRange.minVariantPrice ? 
+          parseFloat(product.compareAtPriceRange.minVariantPrice.amount) : null,
+        images: product.images.edges.map(img => img.node.url),
+        variants: product.variants.edges.map(({ node: variant }) => ({
+          id: variant.id,
+          title: variant.title,
+          price: parseFloat(variant.price.amount),
+          compareAtPrice: variant.compareAtPrice ? parseFloat(variant.compareAtPrice.amount) : null,
+          availableForSale: variant.availableForSale,
+          quantityAvailable: variant.quantityAvailable,
+          selectedOptions: variant.selectedOptions
+        })),
+        options: product.options,
+        // Additional fields
+        occasion: product.tags.find(tag => ['wedding', 'party', 'casual', 'festive'].includes(tag.toLowerCase())) || '',
+        material: product.tags.find(tag => ['silk', 'cotton', 'georgette', 'gold', 'silver'].includes(tag.toLowerCase())) || ''
+      };
+    } catch (error) {
+      console.error('Error fetching product from Shopify:', error);
+      return null;
+    }
+  },
+
+  // Create checkout
+  createCheckout: async (lineItems) => {
+    const graphqlQuery = `
+      mutation checkoutCreate($input: CheckoutCreateInput!) {
+        checkoutCreate(input: $input) {
+          checkout {
+            id
+            webUrl
+            lineItems(first: 50) {
+              edges {
+                node {
+                  title
+                  quantity
+                }
+              }
+            }
+            totalPrice {
+              amount
+              currencyCode
+            }
+          }
+          checkoutUserErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2023-10/graphql.json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_TOKEN,
+        },
+        body: JSON.stringify({
+          query: graphqlQuery,
+          variables: {
+            input: {
+              lineItems: lineItems
+            }
+          }
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.errors) {
+        console.error('Checkout creation errors:', data.errors);
+        throw new Error('Failed to create checkout');
+      }
+
+      if (data.data.checkoutCreate.checkoutUserErrors.length > 0) {
+        console.error('Checkout user errors:', data.data.checkoutCreate.checkoutUserErrors);
+        throw new Error(data.data.checkoutCreate.checkoutUserErrors[0].message);
+      }
+
+      return data.data.checkoutCreate.checkout;
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      throw error;
+    }
+  }
+};
 
 const api = {
+  // Use Shopify for products
   getProducts: async (filters = {}) => {
-    const queryParams = new URLSearchParams(filters).toString();
-    const response = await fetch(`${API_BASE}/api/products?${queryParams}`);
-    return response.json();
+    let query = '';
+    
+    // Build Shopify query based on filters
+    if (filters.category && filters.category !== '') {
+      query += `product_type:${filters.category} `;
+    }
+    
+    if (filters.tag) {
+      query += `tag:${filters.tag} `;
+    }
+
+    return await shopifyAPI.getProducts(50, query.trim());
   },
   
-  getProduct: async (id) => {
-    const response = await fetch(`${API_BASE}/api/products/${id}`);
-    return response.json();
+  getProduct: async (handle) => {
+    return await shopifyAPI.getProduct(handle);
   },
   
   getCategories: async () => {
-    const response = await fetch(`${API_BASE}/api/categories`);
-    return response.json();
+    // Return predefined categories for now
+    return [
+      { id: '1', name: 'Designer Sarees', handle: 'sarees' },
+      { id: '2', name: 'Royal Lehengas', handle: 'lehengas' },
+      { id: '3', name: 'Designer Kurtis', handle: 'kurtis' },
+      { id: '4', name: 'Premium Jewelry', handle: 'jewelry' }
+    ];
   },
 
-  createGuestOrder: async (orderData) => {
-    const response = await fetch(`${API_BASE}/api/guest/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData)
-    });
-    return response.json();
+  // Shopify checkout
+  createCheckout: async (cartItems) => {
+    const lineItems = cartItems.map(item => ({
+      variantId: item.selectedVariant?.id || item.variants?.[0]?.id,
+      quantity: item.quantity || 1
+    }));
+
+    return await shopifyAPI.createCheckout(lineItems);
   }
 };
 
