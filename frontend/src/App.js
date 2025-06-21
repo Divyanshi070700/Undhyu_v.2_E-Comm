@@ -9,7 +9,7 @@ const useCart = () => useContext(CartContext);
 // API functions with Shopify integration
 const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const SHOPIFY_DOMAIN = 'j0dktb-z1.myshopify.com';
-const SHOPIFY_STOREFRONT_TOKEN = 'e1b6b8f9e68a12c9ba10eacb3da5c5c0';
+const SHOPIFY_STOREFRONT_TOKEN = 'dd4eafd22db73312b891b84875b87244';
 
 // Shopify Storefront API
 const shopifyAPI = {
