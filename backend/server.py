@@ -16,6 +16,142 @@ import hmac
 import hashlib
 import json
 
+
+# Add these imports at the top if not already there
+import razorpay
+import hmac
+import hashlib
+
+# Add this after your existing settings
+razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+# Add these models after your existing models
+class CartItem(BaseModel):
+    id: str
+    title: str
+    quantity: int
+    price: float
+    handle: str
+
+class CreateOrderRequest(BaseModel):
+    amount: int  # Amount in paise
+    currency: str = "INR"
+    cart: List[CartItem]
+
+class VerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    cart: List[CartItem]
+
+# Add these endpoints after your existing endpoints
+@api_router.post("/create-razorpay-order")
+async def create_razorpay_order(request: CreateOrderRequest):
+    """Create Razorpay order for payment"""
+    try:
+        # Create order in Razorpay
+        order_data = {
+            "amount": request.amount,
+            "currency": request.currency,
+            "receipt": f"order_{uuid.uuid4()}",
+            "payment_capture": 1
+        }
+        
+        razorpay_order = razorpay_client.order.create(data=order_data)
+        
+        # Store order in database
+        if db:
+            order_record = {
+                "razorpay_order_id": razorpay_order["id"],
+                "amount": request.amount,
+                "currency": request.currency,
+                "cart": [item.dict() for item in request.cart],
+                "status": "created",
+                "created_at": datetime.utcnow()
+            }
+            await db.orders.insert_one(order_record)
+        
+        return {
+            "id": razorpay_order["id"],
+            "amount": razorpay_order["amount"],
+            "currency": razorpay_order["currency"],
+            "status": razorpay_order["status"]
+        }
+        
+    except Exception as e:
+        print(f"Razorpay order creation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+
+@api_router.post("/verify-payment")
+async def verify_payment(request: VerifyPaymentRequest):
+    """Verify Razorpay payment and process order"""
+    try:
+        # Verify payment signature
+        signature = request.razorpay_signature
+        order_id = request.razorpay_order_id
+        payment_id = request.razorpay_payment_id
+        
+        # Create signature for verification
+        message = f"{order_id}|{payment_id}"
+        generated_signature = hmac.new(
+            settings.RAZORPAY_KEY_SECRET.encode(),
+            message.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(signature, generated_signature):
+            raise HTTPException(status_code=400, detail="Invalid payment signature")
+        
+        # Get payment details from Razorpay
+        payment = razorpay_client.payment.fetch(payment_id)
+        
+        if payment["status"] != "captured":
+            raise HTTPException(status_code=400, detail="Payment not captured")
+        
+        # Update order status in database
+        if db:
+            await db.orders.update_one(
+                {"razorpay_order_id": order_id},
+                {
+                    "$set": {
+                        "razorpay_payment_id": payment_id,
+                        "status": "paid",
+                        "paid_at": datetime.utcnow(),
+                        "payment_details": payment
+                    }
+                }
+            )
+        
+        return {
+            "success": True,
+            "payment_id": payment_id,
+            "order_id": order_id,
+            "amount": payment["amount"],
+            "status": payment["status"],
+            "message": "Payment verified successfully"
+        }
+        
+    except Exception as e:
+        print(f"Payment verification error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Payment verification failed: {str(e)}")
+
+@api_router.get("/orders")
+async def get_orders():
+    """Get all orders"""
+    if not db:
+        return {"orders": []}
+    
+    try:
+        orders = await db.orders.find().sort("created_at", -1).to_list(100)
+        return {"orders": orders}
+    except Exception as e:
+        print(f"Error fetching orders: {str(e)}")
+        return {"orders": []}
+
+
+
+
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
