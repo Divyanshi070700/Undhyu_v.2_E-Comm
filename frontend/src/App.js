@@ -496,4 +496,33 @@ function App() {
   );
 }
 
+
+const handleRazorpayPayment = async () => {
+  const response = await fetch("/api/create-razorpay-order", { method: "POST" });
+  const order = await response.json();
+
+  const options = {
+    key: process.env.REACT_APP_RAZORPAY_KEY_ID,
+    amount: order.amount,
+    currency: "INR",
+    name: "Your Store",
+    description: "Order Payment",
+    order_id: order.id,
+    handler: function (response) {
+      // Send payment_id to backend for verification
+      console.log("Payment successful:", response);
+    },
+    prefill: {
+      name: "Customer",
+      email: "customer@example.com",
+      contact: "9999999999"
+    }
+  };
+
+  const razorpay = new window.Razorpay(options);
+  razorpay.open();
+}
+
+
+
 export default App;
