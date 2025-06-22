@@ -445,9 +445,6 @@ html {
   --pink-900: #831843;
 }
 
-
-/* Next modification */
-
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
