@@ -9,7 +9,7 @@ function App() {
 
   // Shopify Storefront API configuration
   const SHOPIFY_DOMAIN = 'j0dktb-z1.myshopify.com';
-  const STOREFRONT_ACCESS_TOKEN = '90026076b752b075fbc0d9fa57faea1e';
+  const STOREFRONT_ACCESS_TOKEN = 'd6663c23c4c7b1c85790bb6230722ee2';
 
   // Beautiful Indian fashion hero images
   const heroImages = [
