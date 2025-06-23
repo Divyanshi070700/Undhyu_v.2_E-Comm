@@ -46,6 +46,8 @@ class VerifyPaymentRequest(BaseModel):
 
 # Add these endpoints after your existing endpoints
 
+# -------------------------V3--------------------------------
+
 @api_router.post("/create-razorpay-order")
 async def create_razorpay_order(request: dict):
     try:
@@ -78,6 +80,42 @@ async def verify_payment(request: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# -------------------------V2--------------------------------
+
+# @api_router.post("/create-razorpay-order")
+# async def create_razorpay_order(request: dict):
+#     try:
+#         order_data = {
+#             "amount": request["amount"],
+#             "currency": request.get("currency", "INR"),
+#             "receipt": f"order_{uuid.uuid4()}",
+#             "payment_capture": 1
+#         }
+#         razorpay_order = razorpay_client.order.create(data=order_data)
+#         return razorpay_order
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+# @api_router.post("/verify-payment") 
+# async def verify_payment(request: dict):
+#     try:
+#         message = f"{request['razorpay_order_id']}|{request['razorpay_payment_id']}"
+#         signature = hmac.new(
+#             settings.RAZORPAY_KEY_SECRET.encode(),
+#             message.encode(),
+#             hashlib.sha256
+#         ).hexdigest()
+        
+#         if signature == request['razorpay_signature']:
+#             return {"success": True}
+#         else:
+#             return {"success": False}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ------------------------ V1 -------------------------
 
 
 # @api_router.post("/create-razorpay-order")
@@ -116,6 +154,7 @@ async def verify_payment(request: dict):
 #     except Exception as e:
 #         print(f"Razorpay order creation error: {str(e)}")
 #         raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+
 
 @api_router.post("/verify-payment")
 async def verify_payment(request: VerifyPaymentRequest):
