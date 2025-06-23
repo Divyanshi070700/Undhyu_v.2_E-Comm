@@ -326,7 +326,7 @@ const debugLog = (message, data) => {
         // const result = await verifyResponse.json();
             
             if (result.success) {
-              alert('Payment successful! Order placed successfully.');
+              // alert('Payment successful! Order placed successfully.');
               setCart([]); // Clear cart
               setShowCart(false);
             } else {
