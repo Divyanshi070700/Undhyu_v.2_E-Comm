@@ -295,7 +295,7 @@ const debugLog = (message, data) => {
         //       }),
         //     });
 
-            const result = await verifyResponse.json();
+        // const result = await verifyResponse.json();
             
             if (result.success) {
               alert('Payment successful! Order placed successfully.');
