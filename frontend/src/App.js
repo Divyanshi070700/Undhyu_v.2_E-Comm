@@ -192,13 +192,31 @@ const debugLog = (message, data) => {
 
     try {
       // Create order
-      const orderResponse = await fetch(`${API_BASE_URL}/create-razorpay-order`, {
+      // const orderResponse = await fetch(`${API_BASE_URL}/create-razorpay-order`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     amount: Math.round(totalAmount * 100), // Convert to paise
+      //     currency: 'INR',
+      //     cart: cart.map(item => ({
+      //       id: item.id,
+      //       title: item.title,
+      //       quantity: item.quantity,
+      //       price: parseFloat(item.variants.edges[0]?.node.price.amount || 0),
+      //       handle: item.handle
+      //     }))
+      //   }),
+      // });
+      
+           const orderResponse = await fetch(`${API_BASE_URL}/create-razorpay-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: Math.round(totalAmount * 100), // Convert to paise
+          amount: Math.round(totalAmount * 100),
           currency: 'INR',
           cart: cart.map(item => ({
             id: item.id,
@@ -210,8 +228,13 @@ const debugLog = (message, data) => {
         }),
       });
 
-      const text = await orderResponse.text(); // log raw response
-      console.log('Raw backend response:', text);
+    // Log for debugging
+    console.log('Response status:', orderResponse.status);
+    const responseText = await orderResponse.text();
+    console.log('Raw response text:', responseText);
+
+      // const text = await orderResponse.text(); // log raw response
+      // console.log('Raw backend response:', text);
 
 
       
