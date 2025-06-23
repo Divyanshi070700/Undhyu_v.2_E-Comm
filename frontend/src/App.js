@@ -210,6 +210,11 @@ const debugLog = (message, data) => {
         }),
       });
 
+      const text = await orderResponse.text(); // log raw response
+      console.log('Raw backend response:', text);
+
+
+      
       if (!orderResponse.ok) {
         throw new Error('Failed to create order');
       }
