@@ -13,8 +13,7 @@ function App() {
   const SHOPIFY_DOMAIN = 'j0dktb-z1.myshopify.com';
   const STOREFRONT_ACCESS_TOKEN = 'eeae7a5247421a8b8a14711145ecd93b'; // Fixed token
   const RAZORPAY_KEY_ID = 'rzp_live_NIogFPd28THyOF'; // Your live key
-  const API_BASE_URL = 'https://undhyu-v-2.vercel.app/api';
-  // const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || '/api';
+  const API_BASE_URL = process.env.REACT_APP_BACKEND_URL ? `${process.env.REACT_APP_BACKEND_URL}/api` : '/api';
 
   // Load Razorpay script
   useEffect(() => {
@@ -22,6 +21,7 @@ function App() {
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     document.body.appendChild(script);
+
     return () => {
       if (document.body.contains(script)) {
         document.body.removeChild(script);
@@ -36,7 +36,7 @@ function App() {
       alt: "Vibrant red saree with traditional jewelry"
     },
     {
-      url: "https://images.unsplash.com/photo-1571908599407-cdb918ed83bf", 
+      url: "https://images.unsplash.com/photo-1571908599407-cdb918ed83bf",
       alt: "Elegant cream ethnic outfit in boutique setting"
     },
     {
@@ -99,7 +99,6 @@ function App() {
       });
 
       const data = await response.json();
-      
       if (data.data && data.data.products) {
         setProducts(data.data.products.edges.map(edge => edge.node));
       }
@@ -117,10 +116,11 @@ function App() {
   // Auto-rotate hero images
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => 
+      setCurrentImageIndex((prevIndex) =>
         (prevIndex + 1) % heroImages.length
       );
     }, 5000);
+
     return () => clearInterval(interval);
   }, [heroImages.length]);
 
@@ -149,6 +149,7 @@ function App() {
       removeFromCart(productId);
       return;
     }
+
     setCart(prevCart =>
       prevCart.map(item =>
         item.id === productId
@@ -169,48 +170,26 @@ function App() {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const debugLog = (message, data) => {
+    console.log(`[DEBUG] ${message}:`, data);
+  };
 
-const debugLog = (message, data) => {
-  console.log(`[DEBUG] ${message}:`, data);
-};
-
-  
   // Payment processing
   const processPayment = async () => {
     const totalAmount = getTotalAmount();
+    debugLog('Starting payment process', {
+      totalAmount,
+      cartItems: cart.length,
+      apiUrl: API_BASE_URL
+    });
 
- debugLog('Starting payment process', {
-    totalAmount,
-    cartItems: cart.length,
-    apiUrl: API_BASE_URL
-  });
-    
     if (totalAmount === 0) {
       alert('Please add items to cart');
       return;
     }
 
     try {
-      // Create order
-      // const orderResponse = await fetch(`${API_BASE_URL}/create-razorpay-order`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     amount: Math.round(totalAmount * 100), // Convert to paise
-      //     currency: 'INR',
-      //     cart: cart.map(item => ({
-      //       id: item.id,
-      //       title: item.title,
-      //       quantity: item.quantity,
-      //       price: parseFloat(item.variants.edges[0]?.node.price.amount || 0),
-      //       handle: item.handle
-      //     }))
-      //   }),
-      // });
-      
-           const orderResponse = await fetch(`${API_BASE_URL}/create-razorpay-order`, {
+      const orderResponse = await fetch(`${API_BASE_URL}/create-razorpay-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -228,21 +207,16 @@ const debugLog = (message, data) => {
         }),
       });
 
-    // Log for debugging
-    console.log('Response status:', orderResponse.status);
-    const responseText = await orderResponse.text();
-    console.log('Raw response text:', responseText);
+      // Log for debugging
+      console.log('Response status:', orderResponse.status);
+      const responseText = await orderResponse.text();
+      console.log('Raw response text:', responseText);
 
-      // const text = await orderResponse.text(); // log raw response
-      // console.log('Raw backend response:', text);
-
-
-      
       if (!orderResponse.ok) {
         throw new Error('Failed to create order');
       }
 
-      const orderData = await orderResponse.json();
+      const orderData = JSON.parse(responseText);
 
       // Razorpay payment options
       const options = {
@@ -252,89 +226,45 @@ const debugLog = (message, data) => {
         name: 'Undhyu.com',
         description: 'Authentic Indian Fashion',
         order_id: orderData.id,
-      
-        
+        handler: async function (response) {
+          // Close the cart immediately to show progress
+          setShowCart(false);
+          // Show loading state
+          alert('Processing payment... Please wait.');
 
-  handler: async function(response) {
-  // Close the cart immediately to show progress
-  setShowCart(false);
-  
-  // Show loading state
-  alert('Processing payment... Please wait.');
-  
-  try {
-    // Verify payment
-    const verifyResponse = await fetch(`${API_BASE_URL}/verify-payment`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        razorpay_order_id: response.razorpay_order_id,
-        razorpay_payment_id: response.razorpay_payment_id,
-        razorpay_signature: response.razorpay_signature,
-        cart: cart.map(item => ({
-          id: item.id,
-          title: item.title,
-          quantity: item.quantity,
-          price: parseFloat(item.variants.edges[0]?.node.price.amount || 0),
-          handle: item.handle
-        }))
-      }),
-    });
+          try {
+            // Verify payment
+            const verifyResponse = await fetch(`${API_BASE_URL}/verify-payment`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                cart: cart.map(item => ({
+                  id: item.id,
+                  title: item.title,
+                  quantity: item.quantity,
+                  price: parseFloat(item.variants.edges[0]?.node.price.amount || 0),
+                  handle: item.handle
+                }))
+              }),
+            });
 
-    const result = await verifyResponse.json();
-    
-    if (result.success) {
-      // Clear cart and show success
-      setCart([]);
-      alert('🎉 Payment successful! Your order has been placed successfully. You will receive confirmation shortly.');
-      
-      // Optionally redirect to a success page
-      // window.location.href = '/order-success';
-    } else {
-      alert('❌ Payment verification failed. Please contact our support team with payment ID: ' + response.razorpay_payment_id);
-    }
-  } catch (error) {
-    console.error('Payment verification error:', error);
-    alert('❌ Payment verification failed. Please contact our support team with payment ID: ' + response.razorpay_payment_id);
-  }
-},
-        
-        // handler: async function(response) {
-        //   try {
-        //     // Verify payment
-        //     const verifyResponse = await fetch(`${API_BASE_URL}/verify-payment`, {
-        //       method: 'POST',
-        //       headers: {
-        //         'Content-Type': 'application/json',
-        //       },
-        //       body: JSON.stringify({
-        //         razorpay_order_id: response.razorpay_order_id,
-        //         razorpay_payment_id: response.razorpay_payment_id,
-        //         razorpay_signature: response.razorpay_signature,
-        //         cart: cart.map(item => ({
-        //           id: item.id,
-        //           title: item.title,
-        //           quantity: item.quantity,
-        //           price: parseFloat(item.variants.edges[0]?.node.price.amount || 0),
-        //           handle: item.handle
-        //         }))
-        //       }),
-        //     });
+            const result = await verifyResponse.json();
 
-        // const result = await verifyResponse.json();
-            
             if (result.success) {
-              alert('Payment successful! Order placed successfully.');
-              setCart([]); // Clear cart
-              setShowCart(false);
+              // Clear cart and show success
+              setCart([]);
+              alert('🎉 Payment successful! Your order has been placed successfully. You will receive confirmation shortly.');
             } else {
-              alert('Payment verification failed. Please contact support.');
+              alert('❌ Payment verification failed. Please contact our support team with payment ID: ' + response.razorpay_payment_id);
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support.');
+            alert('❌ Payment verification failed. Please contact our support team with payment ID: ' + response.razorpay_payment_id);
           }
         },
         prefill: {
@@ -346,7 +276,7 @@ const debugLog = (message, data) => {
           color: '#ea580c'
         },
         modal: {
-          ondismiss: function(){
+          ondismiss: function () {
             console.log('Payment cancelled');
           }
         }
@@ -386,12 +316,12 @@ const debugLog = (message, data) => {
             )}
           </div>
         )}
-        
+
         <div className="p-4">
           <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 text-sm">
             {product.title}
           </h3>
-          
+
           {variant && (
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg font-bold text-orange-600">
@@ -404,7 +334,7 @@ const debugLog = (message, data) => {
               )}
             </div>
           )}
-          
+
           <div className="flex gap-2">
             <button
               onClick={() => addToCart(product)}
@@ -437,7 +367,7 @@ const debugLog = (message, data) => {
               </h1>
               <span className="ml-2 text-sm text-gray-600 italic">Authentic Indian Fashion</span>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setShowCart(true)}
@@ -454,7 +384,7 @@ const debugLog = (message, data) => {
           </div>
         </div>
       </header>
-      
+
       {/* Hero Section */}
       <section className="relative h-96 md:h-[600px] overflow-hidden">
         <div className="absolute inset-0">
@@ -465,7 +395,7 @@ const debugLog = (message, data) => {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
         </div>
-        
+
         <div className="relative z-10 h-full flex items-center">
           <div className="max-w-7xl mx-auto px-6 w-full">
             <div className="max-w-2xl text-white">
