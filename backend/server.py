@@ -45,116 +45,42 @@ class VerifyPaymentRequest(BaseModel):
     cart: List[CartItem]
 
 # Add these endpoints after your existing endpoints
-
-# -------------------------V3--------------------------------
-
 @api_router.post("/create-razorpay-order")
-async def create_razorpay_order(request: dict):
+async def create_razorpay_order(request: CreateOrderRequest):
+    """Create Razorpay order for payment"""
     try:
+        # Create order in Razorpay
         order_data = {
-            "amount": request["amount"],
-            "currency": request.get("currency", "INR"),
+            "amount": request.amount,
+            "currency": request.currency,
             "receipt": f"order_{uuid.uuid4()}",
             "payment_capture": 1
         }
+        
         razorpay_order = razorpay_client.order.create(data=order_data)
-        return razorpay_order
+        
+        # Store order in database
+        if db:
+            order_record = {
+                "razorpay_order_id": razorpay_order["id"],
+                "amount": request.amount,
+                "currency": request.currency,
+                "cart": [item.dict() for item in request.cart],
+                "status": "created",
+                "created_at": datetime.utcnow()
+            }
+            await db.orders.insert_one(order_record)
+        
+        return {
+            "id": razorpay_order["id"],
+            "amount": razorpay_order["amount"],
+            "currency": razorpay_order["currency"],
+            "status": razorpay_order["status"]
+        }
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/verify-payment") 
-async def verify_payment(request: dict):
-    try:
-        message = f"{request['razorpay_order_id']}|{request['razorpay_payment_id']}"
-        signature = hmac.new(
-            settings.RAZORPAY_KEY_SECRET.encode(),
-            message.encode(),
-            hashlib.sha256
-        ).hexdigest()
-        
-        if signature == request['razorpay_signature']:
-            return {"success": True}
-        else:
-            return {"success": False}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# -------------------------V2--------------------------------
-
-# @api_router.post("/create-razorpay-order")
-# async def create_razorpay_order(request: dict):
-#     try:
-#         order_data = {
-#             "amount": request["amount"],
-#             "currency": request.get("currency", "INR"),
-#             "receipt": f"order_{uuid.uuid4()}",
-#             "payment_capture": 1
-#         }
-#         razorpay_order = razorpay_client.order.create(data=order_data)
-#         return razorpay_order
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-# @api_router.post("/verify-payment") 
-# async def verify_payment(request: dict):
-#     try:
-#         message = f"{request['razorpay_order_id']}|{request['razorpay_payment_id']}"
-#         signature = hmac.new(
-#             settings.RAZORPAY_KEY_SECRET.encode(),
-#             message.encode(),
-#             hashlib.sha256
-#         ).hexdigest()
-        
-#         if signature == request['razorpay_signature']:
-#             return {"success": True}
-#         else:
-#             return {"success": False}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-
-
-# ------------------------ V1 -------------------------
-
-
-# @api_router.post("/create-razorpay-order")
-# async def create_razorpay_order(request: CreateOrderRequest):
-#     """Create Razorpay order for payment"""
-#     try:
-#         # Create order in Razorpay
-#         order_data = {
-#             "amount": request.amount,
-#             "currency": request.currency,
-#             "receipt": f"order_{uuid.uuid4()}",
-#             "payment_capture": 1
-#         }
-        
-#         razorpay_order = razorpay_client.order.create(data=order_data)
-        
-#         # Store order in database
-#         if db:
-#             order_record = {
-#                 "razorpay_order_id": razorpay_order["id"],
-#                 "amount": request.amount,
-#                 "currency": request.currency,
-#                 "cart": [item.dict() for item in request.cart],
-#                 "status": "created",
-#                 "created_at": datetime.utcnow()
-#             }
-#             await db.orders.insert_one(order_record)
-        
-#         return {
-#             "id": razorpay_order["id"],
-#             "amount": razorpay_order["amount"],
-#             "currency": razorpay_order["currency"],
-#             "status": razorpay_order["status"]
-#         }
-        
-#     except Exception as e:
-#         print(f"Razorpay order creation error: {str(e)}")
-#         raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
-
+        print(f"Razorpay order creation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
 
 @api_router.post("/verify-payment")
 async def verify_payment(request: VerifyPaymentRequest):
