@@ -13,8 +13,8 @@ function App() {
   const SHOPIFY_DOMAIN = 'j0dktb-z1.myshopify.com';
   const STOREFRONT_ACCESS_TOKEN = 'eeae7a5247421a8b8a14711145ecd93b'; // Fixed token
   const RAZORPAY_KEY_ID = 'rzp_live_NIogFPd28THyOF'; // Your live key
-  // const API_BASE_URL = 'https://undhyu-v-2.vercel.app/api';
-  const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || '/api';
+  const API_BASE_URL = 'https://undhyu-v-2.vercel.app/api';
+  // const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || '/api';
 
   // Load Razorpay script
   useEffect(() => {
