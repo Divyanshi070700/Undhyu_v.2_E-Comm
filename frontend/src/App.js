@@ -325,18 +325,18 @@ const debugLog = (message, data) => {
 
         // const result = await verifyResponse.json();
             
-            if (result.success) {
-              // alert('Payment successful! Order placed successfully.');
-              setCart([]); // Clear cart
-              setShowCart(false);
-            } else {
-              alert('Payment verification failed. Please contact support.');
-            }
-          } catch (error) {
-            console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support.');
-          }
-        },
+        //     if (result.success) {
+        //       alert('Payment successful! Order placed successfully.');
+        //       setCart([]); // Clear cart
+        //       setShowCart(false);
+        //     } else {
+        //       alert('Payment verification failed. Please contact support.');
+        //     }
+        //   } catch (error) {
+        //     console.error('Payment verification error:', error);
+        //     alert('Payment verification failed. Please contact support.');
+        //   }
+        // },
         prefill: {
           name: '',
           email: '',
